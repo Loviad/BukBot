@@ -18,11 +18,15 @@ repositories {
 
 dependencies {
 	implementation("org.springframework.boot:spring-boot-starter-data-mongodb-reactive")
-	implementation("org.springframework.boot:spring-boot-starter-mustache")
 	implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
 	implementation("org.jetbrains.kotlin:kotlin-reflect")
+	implementation("org.springframework.boot:spring-boot-starter-thymeleaf")
+	implementation("org.springframework.boot:spring-boot-starter-web")
 	implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
-//	implementation("org.seleniumhq.selenium:selenium-chrome-driver:3.9.1")
+	implementation("org.springframework.boot:spring-boot-devtools:2.1.8.RELEASE")
+	implementation("org.mongodb:mongodb-driver-async:3.10.1")
+	implementation("ch.rasc:sse-eventbus:1.1.7")
+	implementation("org.springframework.boot:spring-boot-starter-security")
 	implementation("org.seleniumhq.selenium:selenium-chrome-driver:3.141.59")
 	implementation("org.jetbrains.kotlinx:kotlinx-coroutines-reactor")
 	testImplementation("org.springframework.boot:spring-boot-starter-test") {

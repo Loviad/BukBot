@@ -1,0 +1,47 @@
+<!DOCTYPE HTML>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <title>BukBot</title>
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.5.16/dist/vue.js"></script>
+
+    <!--    <link rel="stylesheet" th:href="@{webjars/bootstrap/4.2.1/css/bootstrap.min.css}"/>-->
+    <!--    <link rel="stylesheet" th:href="@{/css/main.css}"/>-->
+
+</head>
+
+<body>
+
+<div id="contents">
+    <p>{{ id }}</p>
+    <p>{{ stockData }}</p>
+</div>
+<script th:inline="javascript">
+    var app = new Vue({
+        el: '#contents',
+        data: {
+            id: /*[[${id}]]*/,
+            stockData: null
+        },
+        created() {
+            this.setupStream();
+        },
+        methods: {
+            setupStream() {
+                let es = new EventSource('../whait_auth/' + String(this.id));
+
+                es.addEventListener('message', event => {
+                    let data = JSON.parse(event.data);
+                    console.log(data)
+                    this.stockData = data.first + ' $ ' + data.second;
+                }, false);
+            }
+        }
+    });
+
+
+</script>
+</body>
+</html>

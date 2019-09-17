@@ -5,22 +5,17 @@ import com.example.bukbot.utils.threadfabrick.BrowserThreadFactory
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.launch
-import org.openqa.selenium.By
 import org.openqa.selenium.NoSuchElementException
 import org.openqa.selenium.chrome.ChromeDriver
 import org.openqa.selenium.chrome.ChromeOptions
-import org.openqa.selenium.interactions.Coordinates
 import org.openqa.selenium.remote.CapabilityType
 import org.springframework.stereotype.Component
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import javax.annotation.PostConstruct
 import javax.annotation.PreDestroy
-import org.openqa.selenium.interactions.Actions
 
-
-
-@Component
+//@Component
 class WebBrowser : CoroutineScope {
 
     override val coroutineContext = BukBotApplication.backgroundTaskDispatcher
@@ -51,13 +46,11 @@ class WebBrowser : CoroutineScope {
         driver = ChromeDriver(options)
         loadParsingPage()
         checkAuth()
+        valueBets()
     }
 
 
-    fun loadPage(page: String, classNameForWait: String, countReload: Int = 10) = launch(browserDispatcher){
-        if(driverState == State.LOAD_PAGE) {
-            println("Браузер занят")
-        }
+    fun loadPage(page: String, classNameForWait: String, countReload: Int = 10) = launch(browserDispatcher) {
         driver?.get(page)
         var count = 0
         var fined = true
@@ -74,7 +67,7 @@ class WebBrowser : CoroutineScope {
             count++
         }
 
-        driverState = if(!fined){
+        driverState = if (!fined) {
             println("Страница загружена")
             State.PAGE_LOADED
         } else {
@@ -101,7 +94,7 @@ class WebBrowser : CoroutineScope {
             count++
         }
 
-        driverState = if(!fined){
+        driverState = if (!fined) {
             println("Страница загружена")
             State.PAGE_LOADED
         } else {
@@ -118,13 +111,47 @@ class WebBrowser : CoroutineScope {
             )
             driverState = State.NEED_AUTH
             authorization = false
-        } catch (e: NoSuchElementException){
+        } catch (e: NoSuchElementException) {
             authorization = true
         }
     }
 
+    private fun valueBets() = launch(browserDispatcher) {
+        driverState = State.LOAD_PAGE
+        try {
+            driver?.findElementByXPath(
+                    "//nav[contains(@class,'navbar-default')]//ul[contains(@class,'navbar-right')]/li/a[contains(@href,'bets.com/valuebets')]"
+            )?.click()
+            TimeUnit.SECONDS.sleep(3L)
+            var count = 0
+            var fined = true
+            while (count < 10 && fined) {
+                driverState = State.LOAD_PAGE
+                try {
+                    driver?.findElementByClassName("scroller")
+                    fined = false
+                } catch (e: Exception) {
+                    driverState = State.ERROR_LOAD_PAGE
+                    driver?.navigate()?.refresh()
+                    TimeUnit.SECONDS.sleep(10L)
+                }
+                count++
+            }
+
+            driverState = if (!fined) {
+                println("Страница загружена")
+                State.PAGE_LOADED
+            } else {
+                println("Не могу загрузить страницу вилок")
+                State.ERROR_LOAD_PAGE
+            }
+        } catch (e: NoSuchElementException) {
+            driverState = State.ERROR_LOAD_PAGE
+        }
+    }
+
     @PreDestroy
-    fun close(){
+    fun close() {
         driver?.close()
         driver?.quit()
     }
