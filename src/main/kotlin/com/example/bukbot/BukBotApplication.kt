@@ -11,6 +11,10 @@ import java.util.concurrent.Executors
 import java.util.concurrent.SynchronousQueue
 import java.util.concurrent.ThreadPoolExecutor
 import java.util.concurrent.TimeUnit
+import org.springframework.boot.SpringApplication
+import org.telegram.telegrambots.ApiContextInitializer
+
+
 
 @EnableScheduling
 @SpringBootApplication

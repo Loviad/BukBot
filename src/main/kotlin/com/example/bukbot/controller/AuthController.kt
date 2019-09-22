@@ -1,25 +1,27 @@
 package com.example.bukbot.controller
 
+import com.example.bukbot.component.EventPublisher
 import com.example.bukbot.model.IMessageData
 import org.springframework.stereotype.Controller
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter
-import com.example.bukbot.model.MemoryInfo
+import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.context.event.EventListener
 import org.springframework.http.MediaType
 import org.springframework.ui.Model
 import java.io.IOException
 import java.util.*
-import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.Executors
-import java.util.concurrent.ExecutorService
 import kotlin.collections.HashMap
 import kotlin.math.abs
 
 
 @Controller
 class AuthController {
+
+    @Autowired
+    private lateinit var publisher: EventPublisher
 
     private val emitters = HashMap<String, SseEmitter>()
     private val nonBlockingService = Executors
