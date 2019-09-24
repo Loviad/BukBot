@@ -1,10 +1,9 @@
 package com.example.bukbot.component
 
-import com.example.bukbot.model.MemoryInfo
+import com.example.bukbot.model.webmessages.MemoryInfo
 import org.slf4j.LoggerFactory
 import org.springframework.context.ApplicationEventPublisher
 import org.springframework.context.ApplicationEventPublisherAware
-import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
 
 @Component

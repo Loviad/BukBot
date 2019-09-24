@@ -1,7 +1,7 @@
 package com.example.bukbot.controller
 
 import com.example.bukbot.component.EventPublisher
-import com.example.bukbot.model.IMessageData
+import com.example.bukbot.model.webmessages.IMessageData
 import org.springframework.stereotype.Controller
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
@@ -53,7 +53,6 @@ class AuthController {
 
     @EventListener
     fun handleEvents(messageData: IMessageData) {
-
         emitters.forEach { emitter ->
             nonBlockingService.execute {
                 try {

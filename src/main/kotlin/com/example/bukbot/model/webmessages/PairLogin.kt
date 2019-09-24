@@ -1,4 +1,4 @@
-package com.example.bukbot.model
+package com.example.bukbot.model.webmessages
 
 class PairLogin(
         val login: String,
