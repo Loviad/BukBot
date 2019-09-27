@@ -1,9 +1,11 @@
 package com.example.bukbot
 
 import ch.rasc.sse.eventbus.config.EnableSseEventBus
+import com.example.bukbot.service.telegrambot.TelegramBot
 import com.loviad.bukbot.utils.BackgroundTaskThreadFactory
 import com.loviad.bukbot.utils.OrderedTaskThreadFactory
 import kotlinx.coroutines.asCoroutineDispatcher
+import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.boot.runApplication
 import org.springframework.scheduling.annotation.EnableScheduling
@@ -13,13 +15,14 @@ import java.util.concurrent.ThreadPoolExecutor
 import java.util.concurrent.TimeUnit
 import org.springframework.boot.SpringApplication
 import org.telegram.telegrambots.ApiContextInitializer
-
+import org.telegram.telegrambots.meta.TelegramBotsApi
+import org.telegram.telegrambots.meta.exceptions.TelegramApiException
+import javax.annotation.PostConstruct
 
 
 @EnableScheduling
 @SpringBootApplication
 class BukBotApplication {
-
 	companion object {
 		var backgroundTaskDispatcher = ThreadPoolExecutor(
 				2, 12, 60L,

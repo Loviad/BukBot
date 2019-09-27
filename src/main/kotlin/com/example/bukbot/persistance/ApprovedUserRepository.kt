@@ -1,6 +1,6 @@
 package com.example.bukbot.persistance
 
-import com.example.bukbot.model.dbmodels.ApprovedUsers
+import com.example.bukbot.domain.ApprovedUsers
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.data.mongodb.core.MongoTemplate
 import org.springframework.data.mongodb.repository.MongoRepository

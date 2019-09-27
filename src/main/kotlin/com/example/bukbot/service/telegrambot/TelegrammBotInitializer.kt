@@ -1,20 +1,21 @@
 package com.example.bukbot.service.telegrambot
 
-import com.example.bukbot.model.dbmodels.ApprovedUsers
-import com.example.bukbot.persistance.ApprovedUserRepository
+import com.example.bukbot.persistance.AuthInterractor
+import com.example.bukbot.persistance.TelegramInterractor
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Component
 import javax.annotation.PostConstruct
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException
 import org.telegram.telegrambots.meta.TelegramBotsApi
 import org.telegram.telegrambots.ApiContextInitializer
-import java.util.*
-import kotlin.collections.ArrayList
 
 @Component
 class TelegrammBotInitializer{
+
     @Autowired
-    private lateinit var repository: ApprovedUserRepository
+    private lateinit var authInterractor: AuthInterractor
+    @Autowired
+    private lateinit var telegramInterractor: TelegramInterractor
 //
 //    private val items: List<ApprovedUsers> = ArrayList<ApprovedUsers>().apply {
 //        add(ApprovedUsers(
@@ -32,7 +33,7 @@ class TelegrammBotInitializer{
         val botsApi = TelegramBotsApi()
 
         try {
-            botsApi.registerBot(TelegramBot(repository))
+            botsApi.registerBot(TelegramBot(authInterractor, telegramInterractor))
         } catch (e: TelegramApiException) {
             e.printStackTrace()
         }

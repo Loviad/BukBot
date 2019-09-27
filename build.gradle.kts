@@ -27,6 +27,7 @@ dependencies {
 	implementation("org.springframework.boot:spring-boot-devtools:2.1.8.RELEASE")
 	implementation("org.mongodb:mongodb-driver-async:3.10.1")
 	implementation("ch.rasc:sse-eventbus:1.1.7")
+	implementation("org.projectlombok:lombok:1.16.8")
 	implementation("org.springframework.boot:spring-boot-starter-security")
 	implementation("org.seleniumhq.selenium:selenium-chrome-driver:3.141.59")
 	implementation("org.jetbrains.kotlinx:kotlinx-coroutines-reactor")

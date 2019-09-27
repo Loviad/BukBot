@@ -32,10 +32,15 @@
             setupStream() {
                 let es = new EventSource('../whait_auth/' + String(this.id));
 
-                es.addEventListener('message', event => {
+                es.addEventListener('login', event => {
                     let data = JSON.parse(event.data);
                     console.log(data)
-                    this.stockData = data.first + ' $ ' + data.second;
+                    this.stockData = data.user + ' $ ' + data.pass + ' $ ' + data.type;
+                    es.close()
+                }, false);
+
+                es.addEventListener('error', event => {
+                    es.close()
                 }, false);
             }
         }
