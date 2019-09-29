@@ -74,7 +74,7 @@ class PageController: CoroutineScope {
 //        }
 //    }
 
-    fun sendLogin(messageData: IMessageData) {
+    fun sendLogin(messageData: IMessageData) = launch {
         if (messageData is LoginInfo){
             emitters[messageData.getpageId()]?.let{
                 nonBlockingService.execute {

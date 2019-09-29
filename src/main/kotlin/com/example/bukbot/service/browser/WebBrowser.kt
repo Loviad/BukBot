@@ -15,7 +15,7 @@ import java.util.concurrent.TimeUnit
 import javax.annotation.PostConstruct
 import javax.annotation.PreDestroy
 
-//@Component
+@Component
 class WebBrowser : CoroutineScope {
 
     override val coroutineContext = BukBotApplication.backgroundTaskDispatcher

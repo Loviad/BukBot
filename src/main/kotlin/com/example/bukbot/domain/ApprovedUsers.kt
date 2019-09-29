@@ -10,7 +10,6 @@ import org.springframework.security.core.userdetails.UserDetails
 @Document
 class ApprovedUsers(
         @Id
-        @Indexed(unique = true)
         val chatId: String,
         var isEnabledProperty: Boolean,
         val passwordProperty: String,
@@ -24,9 +23,11 @@ class ApprovedUsers(
         return ImmutableList.of(Roles.USER)
     }
     override fun isEnabled(): Boolean = isEnabledProperty
-    override fun getUsername(): String = usernameProperty
+    override fun getUsername(): String = chatId
     override fun isCredentialsNonExpired(): Boolean = isCredentialsNonExpiredProperty
     override fun getPassword(): String = passwordProperty
     override fun isAccountNonExpired(): Boolean = isAccountNonExpiredProperty
     override fun isAccountNonLocked(): Boolean = isAccountNonLockedProperty
+    fun getLastName(): String = usernameProperty
+    fun getFirstName(): String = userLastName
 }

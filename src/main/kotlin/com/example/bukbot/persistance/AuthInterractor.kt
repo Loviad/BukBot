@@ -39,4 +39,5 @@ class AuthInterractor {
     private inline fun <reified TEvent : AuthEventListener> sendEvents(noinline sender: (TEvent) -> Unit) {
         eventListener.filterIsInstance<TEvent>().forEach { sender(it) }
     }
+
 }

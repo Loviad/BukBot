@@ -2,7 +2,9 @@ package com.example.bukbot.persistance
 
 import com.example.bukbot.domain.ApprovedUsers
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.security.core.userdetails.UsernameNotFoundException
 import org.springframework.stereotype.Component
+import java.util.*
 
 @Component
 class TelegramInterractor {

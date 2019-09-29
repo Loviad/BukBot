@@ -6,9 +6,11 @@ import com.example.bukbot.persistance.AuthInterractor
 import com.example.bukbot.persistance.TelegramInterractor
 import com.example.bukbot.service.events.auth.AuthRequestListener
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.dao.EmptyResultDataAccessException
 import org.springframework.stereotype.Component
 import org.springframework.stereotype.Controller
 import org.telegram.telegrambots.ApiContextInitializer
+import org.telegram.telegrambots.bots.DefaultBotOptions
 import org.telegram.telegrambots.bots.TelegramLongPollingBot
 import org.telegram.telegrambots.meta.TelegramBotsApi
 import org.telegram.telegrambots.meta.api.objects.Update
@@ -16,6 +18,7 @@ import org.telegram.telegrambots.meta.api.methods.send.SendMessage
 import org.telegram.telegrambots.meta.api.objects.Message
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException
 import java.lang.Exception
+import java.util.*
 import javax.annotation.PostConstruct
 import kotlin.collections.HashMap
 
@@ -34,29 +37,14 @@ import kotlin.collections.HashMap
 //
 //}
 
-class TelegramBot(val authInterractor: AuthInterractor, val telegramInterractor: TelegramInterractor): TelegramLongPollingBot(), AuthRequestListener {
+class TelegramBot(val authInterractor: AuthInterractor, val telegramInterractor: TelegramInterractor, options: DefaultBotOptions? = null): TelegramLongPollingBot(options), AuthRequestListener {
     private var approvedUsersList = HashMap<String, ApprovedUsers>()
-    fun setApprovedList(list: List<ApprovedUsers>){
-
-    }
 
     init {
         authInterractor.addAuthEventListener(this)
         telegramInterractor.findAllApprovedUsers().map {
             approvedUsersList[it.chatId] = it
         }
-
-//        repository.save(ApprovedUsers(
-//                "984717325",
-//                true,
-//                UUID.randomUUID().toString(),
-//                "Golushkov",
-//                true,
-//                true,
-//                true,
-//                "Sergey"
-//
-//        ))
     }
 
     override fun onUpdateReceived(update: Update?) {
@@ -76,8 +64,12 @@ class TelegramBot(val authInterractor: AuthInterractor, val telegramInterractor:
     }
 
     fun approvedLogin(message: Message, range: IntRange) {
+        try{
         val user = telegramInterractor.findByChatId(message.chatId.toString())
-        authInterractor.sendLogin(LoginInfo(user.chatId, user.password, message.text.removeRange(range)))
+        authInterractor.sendLogin(LoginInfo(user.chatId, user.password, message.text.removeRange(range)))}
+        catch (e: EmptyResultDataAccessException){
+            //TODO : зафиксировать попытку левого входа
+        }
     }
 
     private fun checkApproved(message: Message):Boolean{
@@ -86,8 +78,8 @@ class TelegramBot(val authInterractor: AuthInterractor, val telegramInterractor:
             return false
         }
         return approvedUsersList[key]?.chatId == message.chatId.toString() &&
-                approvedUsersList[key]?.userLastName== message.chat.firstName &&
-                approvedUsersList[key]?.username == message.chat.lastName
+                approvedUsersList[key]?.getFirstName() == message.chat.firstName &&
+                approvedUsersList[key]?.getLastName() == message.chat.lastName
     }
 
     override fun getBotUsername(): String {
