@@ -3,22 +3,52 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title>Login</title>
+    <!-- Bootstrap CSS -->
+    <script src="assets/libs/js/vue.min.js"></script>
+    <script src="assets/libs/js/axios.min.js"></script>
+    <link rel="stylesheet" href="assets/vendor/bootstrap/css/bootstrap.min.css">
+    <link href="assets/vendor/fonts/circular-std/style.css" rel="stylesheet">
+    <link rel="stylesheet" href="assets/libs/css/style.css">
+    <link rel="stylesheet" href="assets/vendor/fonts/fontawesome/css/fontawesome-all.css">
+    <style>
+    html,
+    body {
+        height: 100%;
+    }
 
-    <title>BukBot</title>
-    <script src="https://cdn.jsdelivr.net/npm/vue@2.5.16/dist/vue.js"></script>
-    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
-
-    <!--    <link rel="stylesheet" th:href="@{webjars/bootstrap/4.2.1/css/bootstrap.min.css}"/>-->
-    <!--    <link rel="stylesheet" th:href="@{/css/main.css}"/>-->
+    body {
+        display: -ms-flexbox;
+        display: flex;
+        -ms-flex-align: center;
+        align-items: center;
+        padding-top: 40px;
+        padding-bottom: 40px;
+    }
+    </style>
 
 </head>
 
 <body>
+    <!-- ============================================================== -->
+    <!-- login page  -->
+    <!-- ============================================================== -->
+    <div id="contents" class="splash-container">
+        <div class="card shadow">
+            <div class="card-header text-center bg-primary text-white rounded-top rounded-bottom"><img class="logo-img" src="assets/images/logo.png" alt="logo">
+                <p/>
+                <h5 class="text-center text-white" style="font-size: xx-large;">{{ id }}</h5>
+            </div>
+        </div>
+    </div>
 
-<div id="contents">
-    <p>{{ id }}</p>
-</div>
-<script th:inline="javascript">
+    <!-- ============================================================== -->
+    <!-- end login page  -->
+    <!-- ============================================================== -->
+    <!-- Optional JavaScript -->
+    <script src="assets/vendor/jquery/jquery-3.3.1.min.js"></script>
+    <script src="assets/vendor/bootstrap/js/bootstrap.bundle.js"></script>
+    <script th:inline="javascript">
     const axiosConfig = {
         headers: {
         "content-Type": "application/x-www-form-urlencoded",
@@ -31,7 +61,7 @@
         el: '#contents',
         data: {
             id: /*[[${id}]]*/,
-            tk: /*[[${_csrf.token}]]*/
+            hash: /*[[${_csrf.token}]]*/
         },
         created() {
             this.setupStream();
@@ -53,7 +83,7 @@
             },
             submitEntry(reqUserName, reqPass) {
                 let self = this;
-                axios.post('', 'username='+reqUserName+'&password='+reqPass+'&_csrf='+this.tk, axiosConfig)
+                axios.post('', 'username='+reqUserName+'&password='+reqPass+'&_csrf='+this.hash, axiosConfig)
                 .then(function(response){
                         const status =
                         JSON.parse(response.status);
@@ -66,6 +96,7 @@
     });
 
 
-</script>
+    </script>
 </body>
+
 </html>

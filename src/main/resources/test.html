@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+ 
+<head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title>Login</title>
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="assets/vendor/bootstrap/css/bootstrap.min.css">
+    <link href="assets/vendor/fonts/circular-std/style.css" rel="stylesheet">
+    <link rel="stylesheet" href="assets/libs/css/style.css">
+    <link rel="stylesheet" href="assets/vendor/fonts/fontawesome/css/fontawesome-all.css">
+    <style>
+    html,
+    body {
+        height: 100%;
+    }
+
+    body {
+        display: -ms-flexbox;
+        display: flex;
+        -ms-flex-align: center;
+        align-items: center;
+        padding-top: 40px;
+        padding-bottom: 40px;
+    }
+    </style>
+        <script src="https://cdn.jsdelivr.net/npm/vue@2.5.16/dist/vue.js"></script>
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+</head>
+
+<body>
+    <!-- ============================================================== -->
+    <!-- login page  -->
+    <!-- ============================================================== -->
+    <div id="contents" class="splash-container">
+        <div class="card shadow">
+            <div class="card-header text-center bg-primary text-white rounded-top rounded-bottom"><img class="logo-img" src="assets/images/logo.png" alt="logo">
+                <p/>
+                <h5 class="text-center text-white">{{ id }}</h5>
+            </div>
+        </div>
+    </div>
+  
+    <!-- ============================================================== -->
+    <!-- end login page  -->
+    <!-- ============================================================== -->
+    <!-- Optional JavaScript -->
+    <script src="assets/vendor/jquery/jquery-3.3.1.min.js"></script>
+    <script src="assets/vendor/bootstrap/js/bootstrap.bundle.js"></script>
+    <script th:inline="javascript">
+    const axiosConfig = {
+        headers: {
+        "content-Type": "application/x-www-form-urlencoded",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3"
+        },
+        credentials: "same-origin"
+    };
+
+    var app = new Vue({
+        el: '#contents',
+        data: {
+            id: /*[[${id}]]*/,
+            tk: /*[[${_csrf.token}]]*/
+        },
+        created() {
+            this.setupStream();
+        },
+        methods: {
+            setupStream() {
+
+                let es = new EventSource('../whait_auth/' + String(this.id));
+
+                es.addEventListener('login', event => {
+                    let data = JSON.parse(event.data);
+                    es.close()
+                    this.submitEntry(data.user, data.pass)
+                }, false);
+
+                es.addEventListener('error', event => {
+                    es.close()
+                }, false);
+            },
+            submitEntry(reqUserName, reqPass) {
+                let self = this;
+                axios.post('', 'username='+reqUserName+'&password='+reqPass+'&_csrf='+this.tk, axiosConfig)
+                .then(function(response){
+                        const status =
+                        JSON.parse(response.status);
+                        if (status == '200') {
+                        window.location.href = "/";
+                        }
+                });
+            }
+        }
+    });
+
+
+</script>
+</body>
+ 
+</html>

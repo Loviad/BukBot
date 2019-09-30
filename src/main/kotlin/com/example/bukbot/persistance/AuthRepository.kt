@@ -13,4 +13,8 @@ class AuthRepository {
     fun sendLogin(loginItem: LoginInfo){
         authController.sendLogin(loginItem)
     }
+
+    fun getCurrentUser(){
+
+    }
 }

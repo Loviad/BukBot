@@ -2,6 +2,7 @@ package com.example.bukbot.service.telegrambot
 
 import com.example.bukbot.persistance.AuthInterractor
 import com.example.bukbot.persistance.TelegramInterractor
+import com.example.bukbot.service.browser.BrowserInterractor
 import org.apache.http.HttpHost
 import org.apache.http.auth.AuthScope
 import org.apache.http.auth.UsernamePasswordCredentials
@@ -25,44 +26,25 @@ class TelegrammBotInitializer{
     private lateinit var authInterractor: AuthInterractor
     @Autowired
     private lateinit var telegramInterractor: TelegramInterractor
-//
-//    private val items: List<ApprovedUsers> = ArrayList<ApprovedUsers>().apply {
-//        add(ApprovedUsers(
-//                UUID.randomUUID().toString(),
-//                "984717325",
-//                "Sergey",
-//                "Golushkov"
-//        ))
-//    }
+    @Autowired
+    private lateinit var browserInterractor: BrowserInterractor
 
     @PostConstruct
     fun start(){
 
-        //telegramInterractor.saveUser()
         ApiContextInitializer.init()
 
         val botsApi = TelegramBotsApi()
 
-        var botOptions = ApiContext.getInstance(DefaultBotOptions::class.java)
-//
-//        val telegramBotsApi = TelegramBotsApi()
-//        val botOptions = ApiContext.getInstance(DefaultBotOptions::class.java)
-//        val credentialsProvider = BasicCredentialsProvider()
-//        credentialsProvider.setCredentials(
-//                AuthScope(Proxy, Port),
-//                UsernamePasswordCredentials(Proxy_user, Proxy_Password))
-//        val httpHost = HttpHost(Proxy, Port)
-//        val requestConfig = RequestConfig.custom().setProxy(httpHost).setAuthenticationEnabled(true).build()
-//        botOptions.setRequestConfig(requestConfig)
-//        botOptions.setCredentialsProvider(credentialsProvider)
-//        botOptions.setHttpProxy(httpHost)
+        val botOptions = ApiContext.getInstance(DefaultBotOptions::class.java)
+
 
         botOptions.proxyHost = "127.0.0.1"
         botOptions.proxyPort = 9050
         botOptions.proxyType = DefaultBotOptions.ProxyType.SOCKS5
 
         try {
-            botsApi.registerBot(TelegramBot(authInterractor, telegramInterractor, botOptions))
+            botsApi.registerBot(TelegramBot(authInterractor, telegramInterractor, browserInterractor, botOptions))
         } catch (e: TelegramApiException) {
             e.printStackTrace()
         }

@@ -9,6 +9,7 @@ import org.openqa.selenium.NoSuchElementException
 import org.openqa.selenium.chrome.ChromeDriver
 import org.openqa.selenium.chrome.ChromeOptions
 import org.openqa.selenium.remote.CapabilityType
+import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Component
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
@@ -16,7 +17,10 @@ import javax.annotation.PostConstruct
 import javax.annotation.PreDestroy
 
 @Component
-class WebBrowser : CoroutineScope {
+class WebBrowser : IBrowserController, CoroutineScope {
+
+    @Autowired
+    private lateinit var browserInterractor: IBrowserInterractor
 
     override val coroutineContext = BukBotApplication.backgroundTaskDispatcher
     var driver: ChromeDriver? = null
@@ -26,7 +30,7 @@ class WebBrowser : CoroutineScope {
     private var driverState: State = State.NOT_INIT
         set(value) {
             field = value
-            println("State change to: ${value.name}")
+            browserInterractor.onChangeState(State.NOT_INIT.name)
             //TODO: отправка по рест смены состояния
         }
 
@@ -36,17 +40,17 @@ class WebBrowser : CoroutineScope {
 
     @PostConstruct
     fun start() {
-        System.setProperty(
-                "webdriver.chrome.driver",
-                this::class.java.getResource("/webdriver/chromedriver").path
-        )
-        val options = ChromeOptions()
-        options.addArguments("user-data-dir=/home/sergey/chromeProfile")
-        options.setCapability(CapabilityType.PAGE_LOAD_STRATEGY, "eager")
-        driver = ChromeDriver(options)
-        loadParsingPage()
-        checkAuth()
-        valueBets()
+//        System.setProperty(
+//                "webdriver.chrome.driver",
+//                this::class.java.getResource("/webdriver/chromedriver").path
+//        )
+//        val options = ChromeOptions()
+//        options.addArguments("user-data-dir=/home/sergey/chromeProfile")
+//        options.setCapability(CapabilityType.PAGE_LOAD_STRATEGY, "eager")
+//        driver = ChromeDriver(options)
+//        loadParsingPage()
+//        checkAuth()
+//        valueBets()
     }
 
 
@@ -77,7 +81,7 @@ class WebBrowser : CoroutineScope {
     }
 
     fun loadParsingPage() = launch(browserDispatcher) {
-        driver?.get("file:///home/sergey/musor/testSite/index.html")
+        driver?.get("https://www.allbestbets.com/arbs")
         TimeUnit.SECONDS.sleep(3L)
         var count = 0
         var fined = true
@@ -117,12 +121,16 @@ class WebBrowser : CoroutineScope {
     }
 
     private fun valueBets() = launch(browserDispatcher) {
+        if(!authorization) {
+            browserInterractor.pushTelegramMessage("Autorization not approved")
+            return@launch
+        }
         driverState = State.LOAD_PAGE
         try {
             driver?.findElementByXPath(
-                    "//nav[contains(@class,'navbar-default')]//ul[contains(@class,'navbar-right')]/li/a[contains(@href,'bets.com/valuebets')]"
+                    "//nav[contains(@class,'navbar-default')]//ul[contains(@class,'navbar-right')]/li/a[contains(@href,'/valuebets')]"
             )?.click()
-            TimeUnit.SECONDS.sleep(3L)
+            TimeUnit.SECONDS.sleep(6L)
             var count = 0
             var fined = true
             while (count < 10 && fined) {
@@ -142,12 +150,19 @@ class WebBrowser : CoroutineScope {
                 println("Страница загружена")
                 State.PAGE_LOADED
             } else {
-                println("Не могу загрузить страницу вилок")
+                browserInterractor.pushTelegramMessage("Не могу загрузить страницу valuebets")
+                println("Не могу загрузить страницу valuebets")
                 State.ERROR_LOAD_PAGE
             }
         } catch (e: NoSuchElementException) {
+            browserInterractor.pushTelegramMessage("Не могу загрузить страницу valuebets")
             driverState = State.ERROR_LOAD_PAGE
         }
+    }
+
+
+    override fun getCurrentState(): State {
+       return driver?.let { driverState } ?: State.NOT_INIT
     }
 
     @PreDestroy

@@ -26,15 +26,14 @@ class WebSecurityConfig: WebSecurityConfigurerAdapter() {
     @Autowired
     private lateinit var userService: UserService
 
-    var encoder = PasswordEncoderFactories.createDelegatingPasswordEncoder()
-
     @Throws(Exception::class)
     override fun configure(http: HttpSecurity) {
         http
                 .authorizeRequests()
                 .antMatchers(
                         "/login",
-                        "/whait_auth/**"
+                        "/whait_auth/**",
+                        "/assets/**"
                 ).permitAll()
                 .anyRequest().authenticated()
                 .and()

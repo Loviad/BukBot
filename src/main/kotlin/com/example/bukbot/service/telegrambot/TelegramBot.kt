@@ -4,22 +4,16 @@ import com.example.bukbot.domain.ApprovedUsers
 import com.example.bukbot.model.webmessages.LoginInfo
 import com.example.bukbot.persistance.AuthInterractor
 import com.example.bukbot.persistance.TelegramInterractor
+import com.example.bukbot.service.browser.BrowserInterractor
+import com.example.bukbot.service.browser.events.TelegramEventListener
 import com.example.bukbot.service.events.auth.AuthRequestListener
-import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.dao.EmptyResultDataAccessException
-import org.springframework.stereotype.Component
-import org.springframework.stereotype.Controller
-import org.telegram.telegrambots.ApiContextInitializer
 import org.telegram.telegrambots.bots.DefaultBotOptions
 import org.telegram.telegrambots.bots.TelegramLongPollingBot
-import org.telegram.telegrambots.meta.TelegramBotsApi
 import org.telegram.telegrambots.meta.api.objects.Update
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage
 import org.telegram.telegrambots.meta.api.objects.Message
-import org.telegram.telegrambots.meta.exceptions.TelegramApiException
 import java.lang.Exception
-import java.util.*
-import javax.annotation.PostConstruct
 import kotlin.collections.HashMap
 
 
@@ -37,11 +31,19 @@ import kotlin.collections.HashMap
 //
 //}
 
-class TelegramBot(val authInterractor: AuthInterractor, val telegramInterractor: TelegramInterractor, options: DefaultBotOptions? = null): TelegramLongPollingBot(options), AuthRequestListener {
+class TelegramBot(
+        val authInterractor: AuthInterractor,
+        val telegramInterractor: TelegramInterractor,
+        val browserInterractor: BrowserInterractor,
+        options: DefaultBotOptions? = null
+):      TelegramLongPollingBot(options),
+        AuthRequestListener,
+        TelegramEventListener{
     private var approvedUsersList = HashMap<String, ApprovedUsers>()
 
     init {
         authInterractor.addAuthEventListener(this)
+        browserInterractor.addAuthEventListener(this)
         telegramInterractor.findAllApprovedUsers().map {
             approvedUsersList[it.chatId] = it
         }
@@ -109,6 +111,21 @@ class TelegramBot(val authInterractor: AuthInterractor, val telegramInterractor:
             sendMessage.chatId = it.chatId
 //        sendMessage.replyToMessageId = message.messageId
             sendMessage.text = "Попытка входа в панель управления\n если это не Вы, введите\n /logoutAll\n Для входа введите\n /login \"цифры со страницы входа\"\n(через пробел, безкавычек)"
+            try {
+                execute(sendMessage)
+            } catch (e: Exception){
+
+            }
+        }
+    }
+
+    override fun pushMessage(text: String) {
+        approvedUsersList.forEach{
+            val sendMessage = SendMessage()
+            sendMessage.enableMarkdown(true)
+            sendMessage.chatId = it.value.chatId
+//        sendMessage.replyToMessageId = message.messageId
+            sendMessage.text = text
             try {
                 execute(sendMessage)
             } catch (e: Exception){

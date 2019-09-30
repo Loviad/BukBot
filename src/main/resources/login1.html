@@ -1,0 +1,71 @@
+<!DOCTYPE HTML>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <title>BukBot</title>
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.5.16/dist/vue.js"></script>
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+
+    <!--    <link rel="stylesheet" th:href="@{webjars/bootstrap/4.2.1/css/bootstrap.min.css}"/>-->
+    <!--    <link rel="stylesheet" th:href="@{/css/main.css}"/>-->
+
+</head>
+
+<body>
+
+<div id="contents">
+    <p>{{ id }}</p>
+</div>
+<script th:inline="javascript">
+    const axiosConfig = {
+        headers: {
+        "content-Type": "application/x-www-form-urlencoded",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3"
+        },
+        credentials: "same-origin"
+    };
+
+    var app = new Vue({
+        el: '#contents',
+        data: {
+            id: /*[[${id}]]*/,
+            tk: /*[[${_csrf.token}]]*/
+        },
+        created() {
+            this.setupStream();
+        },
+        methods: {
+            setupStream() {
+
+                let es = new EventSource('../whait_auth/' + String(this.id));
+
+                es.addEventListener('login', event => {
+                    let data = JSON.parse(event.data);
+                    es.close()
+                    this.submitEntry(data.user, data.pass)
+                }, false);
+
+                es.addEventListener('error', event => {
+                    es.close()
+                }, false);
+            },
+            submitEntry(reqUserName, reqPass) {
+                let self = this;
+                axios.post('', 'username='+reqUserName+'&password='+reqPass+'&_csrf='+this.tk, axiosConfig)
+                .then(function(response){
+                        const status =
+                        JSON.parse(response.status);
+                        if (status == '200') {
+                        window.location.href = "/";
+                        }
+                });
+            }
+        }
+    });
+
+
+</script>
+</body>
+</html>
