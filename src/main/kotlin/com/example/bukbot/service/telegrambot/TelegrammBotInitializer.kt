@@ -1,13 +1,8 @@
 package com.example.bukbot.service.telegrambot
 
-import com.example.bukbot.persistance.AuthInterractor
-import com.example.bukbot.persistance.TelegramInterractor
-import com.example.bukbot.service.browser.BrowserInterractor
-import org.apache.http.HttpHost
-import org.apache.http.auth.AuthScope
-import org.apache.http.auth.UsernamePasswordCredentials
-import org.apache.http.client.config.RequestConfig
-import org.apache.http.impl.client.BasicCredentialsProvider
+import com.example.bukbot.domain.interactors.auth.AuthInterractor
+import com.example.bukbot.domain.interactors.telegram.TelegramInterractor
+import com.example.bukbot.domain.interactors.browser.BrowserInterractor
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Component
 import javax.annotation.PostConstruct

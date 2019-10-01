@@ -1,6 +1,6 @@
 package com.example.bukbot.component
 
-import com.example.bukbot.model.webmessages.LoginInfo
+import com.example.bukbot.data.telegram.models.loginInfo.LoginInfo
 import org.slf4j.LoggerFactory
 import org.springframework.context.ApplicationEventPublisher
 import org.springframework.context.ApplicationEventPublisherAware
@@ -14,7 +14,7 @@ class EventPublisher : ApplicationEventPublisherAware {
     fun sendAuthAccept() {
         LOGGER.info("Publish")
 
-        val info = LoginInfo("heap","pass", "123123")
+        val info = LoginInfo("heap", "pass", "123123")
         eventPublisher!!.publishEvent(info)
     }
 

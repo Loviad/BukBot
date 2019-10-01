@@ -1,12 +1,12 @@
 package com.example.bukbot.service.telegrambot
 
-import com.example.bukbot.domain.ApprovedUsers
-import com.example.bukbot.model.webmessages.LoginInfo
-import com.example.bukbot.persistance.AuthInterractor
-import com.example.bukbot.persistance.TelegramInterractor
-import com.example.bukbot.service.browser.BrowserInterractor
-import com.example.bukbot.service.browser.events.TelegramEventListener
-import com.example.bukbot.service.events.auth.AuthRequestListener
+import com.example.bukbot.data.database.Dao.ApprovedUsers
+import com.example.bukbot.data.telegram.models.loginInfo.LoginInfo
+import com.example.bukbot.domain.interactors.auth.AuthInterractor
+import com.example.bukbot.domain.interactors.telegram.TelegramInterractor
+import com.example.bukbot.domain.interactors.browser.BrowserInterractor
+import com.example.bukbot.controller.browser.events.TelegramEventListener
+import com.example.bukbot.service.auth.events.AuthRequestListener
 import org.springframework.dao.EmptyResultDataAccessException
 import org.telegram.telegrambots.bots.DefaultBotOptions
 import org.telegram.telegrambots.bots.TelegramLongPollingBot
