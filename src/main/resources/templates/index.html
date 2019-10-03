@@ -75,15 +75,12 @@
                 <div class="col-sm">
                     <div class="dashboard-wrapper-content">
                         <h4>Статусы системы</h4>
-                        <a href="#" class="btn btn-success">Парсер</a>
-                        <a href="#" class="btn btn-danger">Телеграм</a>
+                        <a href="#" class="btn" v-bind:class="[stateParser]">Парсер</a>
+                        <a href="#" class="btn" v-bind:class="[stateTelegram]">Телеграм</a>
                     </div>
                 </div>
                 <div class="col-sm">
-                    <div class="dashboard-wrapper-content">
-                        <a href="#" class="btn" v-bind:class="stateParser">Парсер</a>
-                        <a href="#" class="btn" v-bind:class="stateTelegram">Телеграм</a>
-                    </div>
+                    Вторая колонка
                 </div>
             </div>
         </div>
@@ -103,35 +100,34 @@
     <!-- main js -->
     <script src="assets/libs/js/main-js.js"></script>
     <script th:inline="javascript">
-    const axiosConfig = {
-        headers: {
-        "content-Type": "application/x-www-form-urlencoded",
-        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3"
-        },
-        credentials: "same-origin"
-    };
-
     var app = new Vue({
         el: '#contents',
         data: {
             id: /*[[${id}]]*/,
-            stateParser: 'btn-success',
+            stateParser: 'btn-light',
             stateTelegram: 'btn-success'
         },
         created() {
-
+            this.setupStream();
         },
         methods: {
             setupStream() {
 
-                let es = new EventSource('../data_main');
+                let es = new EventSource('../data_listen/' + String(this.id));
 
-                es.addEventListener('dataMain', event => {
+                es.addEventListener('valuebetsUpdate', event => {
                     let data = JSON.parse(event.data);
+                    console.log('valuebetsUpdate:');
+                    console.log(data);
+                }, false);
+
+                es.addEventListener('statusChange', event => {
+                    let data = JSON.parse(event.data);
+                    console.log(event.retry)
+                    this.stateParser = data.value;
                 }, false);
 
                 es.addEventListener('error', event => {
-                    es.close()
                 }, false);
             }
         }

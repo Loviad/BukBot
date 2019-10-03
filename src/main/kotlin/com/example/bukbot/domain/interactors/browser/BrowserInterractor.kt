@@ -1,7 +1,7 @@
 package com.example.bukbot.domain.interactors.browser
 
 import com.example.bukbot.data.repositories.BrowserRepository
-import com.example.bukbot.controller.browser.WebBrowser
+import com.example.bukbot.controller.browser.WebBrowser.State
 import com.example.bukbot.controller.browser.events.BrowserEventListener
 import com.example.bukbot.controller.browser.events.ParsingEventListener
 import com.example.bukbot.controller.browser.events.TelegramEventListener
@@ -19,21 +19,21 @@ class BrowserInterractor: IBrowserInterractor {
     private lateinit var valuebetsRepository: ValueBetsItemRepository
 
     private val eventListener = ArrayList<BrowserEventListener>()
-    fun addAuthEventListener(listener: BrowserEventListener){
+    override fun addEventListener(listener: BrowserEventListener){
         eventListener.add(listener)
     }
-    fun removeAuthEventListener(listener: BrowserEventListener){
+    override fun removeEventListener(listener: BrowserEventListener){
         eventListener.remove(listener)
     }
     private inline fun <reified TEvent : BrowserEventListener> sendEvents(noinline sender: (TEvent) -> Unit) {
         eventListener.filterIsInstance<TEvent>().forEach { sender(it) }
     }
-    override fun onChangeState(state: String) {
+    override fun onChangeState(state: State) {
         sendEvents<ParsingEventListener> {
             it.onChangeStateBrowser(state)
         }
     }
-    override fun getState(): WebBrowser.State {
+    override fun getState(): State {
        return browser.getCurrentState()
     }
 
@@ -45,5 +45,8 @@ class BrowserInterractor: IBrowserInterractor {
 
     override fun saveValuebetsItem(list: List<ValueBetsItem>) {
         valuebetsRepository.saveAll(list)
+        sendEvents<ParsingEventListener> {
+            it.onValueBetsItemsUpdate(list)
+        }
     }
 }

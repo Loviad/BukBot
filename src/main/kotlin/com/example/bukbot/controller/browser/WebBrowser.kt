@@ -18,7 +18,6 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Component
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
-import java.util.regex.Pattern
 import javax.annotation.PostConstruct
 import javax.annotation.PreDestroy
 
@@ -37,8 +36,7 @@ class WebBrowser : IBrowserController, CoroutineScope {
     private var driverState: State = State.NOT_INIT
         set(value) {
             field = value
-            browserInterractor.onChangeState(State.NOT_INIT.name)
-            //TODO: отправка по рест смены состояния
+            browserInterractor.onChangeState(value)
         }
 
     private val browserDispatcher = Executors.newSingleThreadExecutor(
@@ -176,37 +174,46 @@ class WebBrowser : IBrowserController, CoroutineScope {
     }
 
     private fun parsingStart() = launch(browserDispatcher) {
-        if (valuebetsLoaded && authorization && driverState == State.PAGE_LOADED) {
+        var hashList: Int = 0
+        while (valuebetsLoaded && authorization && driverState == State.PAGE_LOADED) {
+            driverState = State.PARSING
             val container = driver?.findElementsByXPath(
                     "//div[@id='arbsScroll']/div[@class='scroller']/ul/li"
             )
-            val listItem = ArrayList<ValueBetsItem>()
+            val listItems = ArrayList<ValueBetsItem>()
             container?.let {
-                it.map { element ->
-                    Regex("[a-z0-9]{32}").find(element.getAttribute("class"))?.value?.let { id ->
-                        val list = element.text.split("\n")
-                        val comands = list[6].split(" - ")
-                        listItem.add(
-                                ValueBetsItem(
-                                        id,
-                                        list[0].removeRange(list[0].length - 1, list[0].length).toDouble(),
-                                        list[3],
-                                        list[1],
-                                        "${list[4]} ${list[5]}",
-                                        comands[0], comands[1],
-                                        list[7],
-                                        list[8],
-                                        list[9].toDouble(),
-                                        DateTime.now(DateTimeZone.UTC)
-                                )
-                        )
+                it.forEach { element ->
+                    try {
+                        Regex("[a-z0-9]{32}").find(element.getAttribute("class"))?.value?.let { id ->
+                            val list = element.text.split("\n")
+                            val comands = list[6].split(" - ")
+                            listItems.add(
+                                    ValueBetsItem(
+                                            id,
+                                            list[0].removeRange(list[0].length - 1, list[0].length).toDouble(),
+                                            list[3],
+                                            list[1],
+                                            "${list[4]} ${list[5]}",
+                                            comands[0], comands[1],
+                                            list[7],
+                                            list[8],
+                                            list[9].toDouble(),
+                                            DateTime.now(DateTimeZone.UTC)
+                                    )
+                            )
+                        }
+                    } catch (e: Exception){
+
                     }
                 }
             }
 
-            if(listItem.isNotEmpty()){
-               browserInterractor.saveValuebetsItem(listItem)
+            if(listItems.isNotEmpty() && hashList != listItems.hashCode()){
+               browserInterractor.saveValuebetsItem(listItems)
             }
+            driverState = State.AWAIT
+            TimeUnit.SECONDS.sleep(60L)
+            driverState = State.PAGE_LOADED
         }
     }
 

@@ -1,6 +1,8 @@
 package com.example.bukbot.controller.page
 
 import com.example.bukbot.BukBotApplication.Companion.backgroundTaskDispatcher
+import com.example.bukbot.data.browsermodels.StatusBrowser
+import com.example.bukbot.data.database.Dao.ValueBetsItem
 import com.example.bukbot.data.telegram.models.IMessageData
 import com.example.bukbot.data.telegram.models.loginInfo.LoginInfo
 import com.example.bukbot.domain.interactors.auth.AuthInterractor
@@ -60,6 +62,15 @@ class PageController: CoroutineScope {
         launch{authInterractor.sendAuthRequest()}
         return emitter
     }
+
+    @GetMapping("/data_listen/{id}")
+    fun dataListener(@PathVariable("id") id: String): SseEmitter {
+        val emitter = SseEmitter(180_000L)
+        emitter.onTimeout { emitter.complete() }
+        emitter.onCompletion { emittersData.remove(id) }
+        emittersData[id] = emitter
+        return emitter
+    }
 //
 //    @EventListener
 //    fun handleEvents(messageData: IMessageData) {
@@ -97,6 +108,42 @@ class PageController: CoroutineScope {
                         }
                         emittersAuth.clear()
                     }
+                }
+            }
+        }
+    }
+
+    fun sendValuebetsItemsUpdate(list: List<ValueBetsItem>){
+        emittersData.forEach { emitter ->
+            nonBlockingService.execute {
+                try {
+                    val k = SseEmitter.event()
+                            .name("valuebetsUpdate")
+                            .reconnectTime(20_000L)
+                            .data(list,
+                                    MediaType.APPLICATION_JSON)
+                    emitter.value.send(k)
+
+                } catch (ioe: IOException) {
+                    emittersData.remove(emitter.key)
+                }
+            }
+        }
+    }
+
+    fun sendStatus(status: String){
+        emittersData.forEach { emitter ->
+            nonBlockingService.execute {
+                try {
+                    val k = SseEmitter.event()
+                            .name("statusChange")
+                            .reconnectTime(20_000L)
+                            .data(StatusBrowser(status),
+                                    MediaType.APPLICATION_JSON)
+                    emitter.value.send(k)
+
+                } catch (ioe: IOException) {
+                    emittersData.remove(emitter.key)
                 }
             }
         }

@@ -43,7 +43,7 @@ class TelegramBot(
 
     init {
         authInterractor.addAuthEventListener(this)
-        browserInterractor.addAuthEventListener(this)
+        browserInterractor.addEventListener(this)
         telegramInterractor.findAllApprovedUsers().map {
             approvedUsersList[it.chatId] = it
         }

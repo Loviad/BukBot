@@ -2,7 +2,9 @@ package com.example.bukbot.data.database.Dao
 
 import org.joda.time.DateTime
 import org.springframework.data.annotation.Id
+import org.springframework.data.mongodb.core.mapping.Document
 
+@Document
 class ValueBetsItem(
         @Id
         val id: String,
@@ -17,7 +19,7 @@ class ValueBetsItem(
         val koef: Double,
         val dateTime: DateTime
 ) {
-
+    var work: Boolean = false
     val hash: Int
 
     init {
@@ -36,5 +38,26 @@ class ValueBetsItem(
         result = 31 * result + event.hashCode()
         result = 31 * result + koef.hashCode()
         return result
+    }
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+
+        other as ValueBetsItem
+
+        if (id != other.id) return false
+        if (percent != other.percent) return false
+        if (bookmaker != other.bookmaker) return false
+        if (sport != other.sport) return false
+        if (time != other.time) return false
+        if (home != other.home) return false
+        if (guest != other.guest) return false
+        if (league != other.league) return false
+        if (event != other.event) return false
+        if (koef != other.koef) return false
+        if (dateTime != other.dateTime) return false
+
+        return true
     }
 }
