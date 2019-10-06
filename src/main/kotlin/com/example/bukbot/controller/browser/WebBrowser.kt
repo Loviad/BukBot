@@ -209,6 +209,7 @@ class WebBrowser : IBrowserController, CoroutineScope {
             }
 
             if(listItems.isNotEmpty() && hashList != listItems.hashCode()){
+               //hashList = listItems.hashCode()
                browserInterractor.saveValuebetsItem(listItems)
             }
             driverState = State.AWAIT

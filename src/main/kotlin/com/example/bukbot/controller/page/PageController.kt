@@ -65,12 +65,30 @@ class PageController: CoroutineScope {
 
     @GetMapping("/data_listen/{id}")
     fun dataListener(@PathVariable("id") id: String): SseEmitter {
+        emittersData[id]?.complete()
         val emitter = SseEmitter(180_000L)
         emitter.onTimeout { emitter.complete() }
         emitter.onCompletion { emittersData.remove(id) }
         emittersData[id] = emitter
         return emitter
     }
+
+    @GetMapping("/valuebets")
+    fun valuePage(model: Model, authentication: Authentication): String {
+        model.addAttribute("id", authentication.name)
+        return "valuebets"
+    }
+    @GetMapping("/valuebets/{id}")
+    fun valuePage(@PathVariable("id") id: String): SseEmitter {
+        emittersData[id]?.complete()
+        val emitter = SseEmitter(180_000L)
+        emitter.onTimeout { emitter.complete() }
+        emitter.onCompletion { emittersData.remove(id) }
+        emittersData[id] = emitter
+        return emitter
+    }
+
+
 //
 //    @EventListener
 //    fun handleEvents(messageData: IMessageData) {
