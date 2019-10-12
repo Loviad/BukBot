@@ -18,7 +18,7 @@ repositories {
 
 dependencies {
 	implementation("org.springframework.boot:spring-boot-starter-data-mongodb")
-	implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
+	//implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
 	implementation("org.jetbrains.kotlin:kotlin-reflect")
 	implementation("org.springframework.boot:spring-boot-starter-thymeleaf")
 	implementation("org.springframework.boot:spring-boot-starter-web")
@@ -30,8 +30,9 @@ dependencies {
 	implementation("joda-time:joda-time:2.10.1")
 	implementation("com.google.guava:guava:25.+")
 	implementation("org.springframework.boot:spring-boot-starter-security")
-	implementation("org.seleniumhq.selenium:selenium-chrome-driver:3.141.59")
+	//implementation("org.seleniumhq.selenium:selenium-chrome-driver:3.141.59")
 	implementation("org.jetbrains.kotlinx:kotlinx-coroutines-reactor")
+	implementation(fileTree("/home/sergey/projects/BukBot/libs"))
 	testImplementation("org.springframework.boot:spring-boot-starter-test") {
 		exclude(group = "org.junit.vintage", module = "junit-vintage-engine")
 	}

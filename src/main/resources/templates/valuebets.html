@@ -3,116 +3,89 @@
 
 <head>
     <!-- Required meta tags -->
-    <meta charset="utf-8">
-    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <!-- Bootstrap CSS -->
-    <script src="assets/libs/js/vue.min.js"></script>
-    <link rel="stylesheet" href="assets/vendor/bootstrap/css/bootstrap.min.css">
-    <link href="assets/vendor/fonts/circular-std/style.css" rel="stylesheet">
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+
+    <title>My first BootstrapVue app</title>
+
+    <!-- Required Stylesheets -->
+    <link
+            type="text/css"
+            rel="stylesheet"
+            href="assets/my/bootstrap.min.css"
+    />
+    <link
+            type="text/css"
+            rel="stylesheet"
+            href="assets/my/bootstrap-vue.min.css"
+    />
     <link rel="stylesheet" href="assets/libs/css/style.css">
     <link rel="stylesheet" href="assets/vendor/fonts/fontawesome/css/fontawesome-all.css">
     <link rel="stylesheet" href="assets/vendor/fonts/flag-icon-css/flag-icon.min.css">
-    <title>Bukbot</title>
-</head>
 
+    <!-- Required scripts -->
+    <script src="assets/my/vue.min.js"></script>
+    <script src="assets/my/bootstrap-vue.min.js"></script>
+</head>
 <body>
-<div class="nav-left-sidebar sidebar-primary">
-    <div class="menu-list">
-        <nav class="navbar navbar-expand-lg navbar-light">
-            <a class="d-xl-none d-lg-none" href="#">Статистика</a>
-            <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav flex-column">
-                    <li class="nav-divider">
-                        Menu
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link active" href="/"><i class="fas fa-address-book"></i>Главная</a>
-                    </li>
-                    <li class="nav-item ">
-                        <a class="nav-link" href="#" data-toggle="collapse" aria-expanded="false" data-target="#submenu-1" aria-controls="submenu-1"><i class="fas fa-calculator"></i>Статистика</a>
-                        <div id="submenu-1" class="collapse submenu" style="">
-                            <ul class="nav flex-column">
-                                <li class="nav-item">
-                                    <a class="nav-link" href="dashboard-finance.html">Ставки</a>
-                                </li>
-                                <li class="nav-item">
-                                    <a class="nav-link" href="dashboard-sales.html">Баланс</a>
-                                </li>
-                                <li class="nav-item">
-                                    <a class="nav-link" href="#" data-toggle="collapse" aria-expanded="false" data-target="#submenu-1-2" aria-controls="submenu-1-2">Текущие вилки</a>
-                                    <div id="submenu-1-2" class="collapse submenu" style="">
-                                        <ul class="nav flex-column">
-                                            <li class="nav-item">
-                                                <a class="nav-link" href="/valuebets">Valuebets</a>
-                                            </li>
-                                            <li class="nav-item">
-                                                <a class="nav-link" href="ecommerce-product.html">Прематч</a>
-                                            </li>
-                                        </ul>
-                                    </div>
-                                </li>
-                            </ul>
-                        </div>
-                    </li>
-                </ul>
-            </div>
-        </nav>
+<div id="app">
+    <div class="nav-left-sidebar sidebar-dark">
+        <b-nav vertical pills >
+            <b-navbar-brand href="#">BukBot</b-navbar-brand>
+            <b-nav-item href="/"><i class="fas fa-desktop"></i>Главная</b-nav-item>
+            <b-nav-item v-b-toggle.collapse-1 variant="dark"><i class="fas fa-chart-area"></i>Статистика</b-nav-item>
+            <b-collapse id="collapse-1" class="submenu">
+                <b-nav-item href="/valuebets">Valuebets</b-nav-item>
+            </b-collapse>
+        </b-nav>
     </div>
-</div>
 <!-- ============================================================== -->
 <!-- main wrapper -->
 <!-- ============================================================== -->
-<div class="dashboard-wrapper" id="contents">
-    <div class="row dashboard-wrapper-content">
-        <div class="col-sm-12 col-12">
-            <div class="card">
-                <h5 class="card-header">Текущие вилки</h5>
-                <div class="card-body">
-                    <table class="table table-bordered">
-                        <thead>
-                        <tr>
-                            <th> %</th>
-                            <th> Букмекер</th>
-                            <th> Дом</th>
-                            <th> Гости</th>
-                            <th> Коэф.</th>
-                        </tr>
-                        </thead>
-                        <tr v-for="item in loans">
-                            <td>{{ item.percent }}</td>
-                            <td>{{ item.bookmaker }}</td>
-                            <td>{{ item.home }}</td>
-                            <td>{{ item.guest }}</td>
-                            <td>{{ item.koef }}</td>
-                        </tr>
+    <div class="dashboard-wrapper">
+        <div class="container-fluid  dashboard-content">
+            <b-row>
+                <div class="col-sm-12">
+                    <div class="card">
+                        <div class="overflow-auto">
+                            <div class="card-header">
+                                <b-badge class="mr-4" variant="primary" style="float: left; font-size: x-large;" >Текущие вилки</b-badge>
+                                <b-pagination
+                                        v-model="currentPage"
+                                        :total-rows="rows"
+                                        :per-page="perPage"
+                                        aria-controls="my-table"
+                                ></b-pagination>
 
-                    </table>
-                    </table>
+                            </div>
+                            <div class="card-body">
+                                <b-table hover bordered
+                                         id="my-table"
+                                         :items="items"
+                                         :per-page="perPage"
+                                         :current-page="currentPage"
+                                ></b-table>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-            </div>
+            </b-row>
         </div>
     </div>
-</div>
+
 <!-- ============================================================== -->
 <!-- end main wrapper -->
 <!-- ============================================================== -->
-    <script src="assets/vendor/jquery/jquery-3.3.1.min.js"></script>
-    <!-- bootstap bundle js -->
-    <script src="assets/vendor/bootstrap/js/bootstrap.bundle.js"></script>
-    <!-- slimscroll js -->
-    <script src="assets/vendor/slimscroll/jquery.slimscroll.js"></script>
-    <!-- main js -->
-    <script src="assets/libs/js/main-js.js"></script>
+</div>
     <script th:inline="javascript">
-    var app = new Vue({
-        el: '#contents',
+    window.app = new Vue({
+        el: '#app',
         data: {
             id: /*[[${id}]]*/,
-            loans: ''
+            perPage: 3,
+            currentPage: 1,
+            items:''
         },
         created() {
             this.setupStream();
@@ -125,11 +98,16 @@
                 es.addEventListener('valuebetsUpdate', event => {
                     let data = JSON.parse(event.data);
                     console.log(data);
-                    this.loans = data;
+                    this.items = data;
                 }, false);
 
                 es.addEventListener('error', event => {
                 }, false);
+            }
+        },
+        computed: {
+            rows() {
+                return this.items.length
             }
         }
     });

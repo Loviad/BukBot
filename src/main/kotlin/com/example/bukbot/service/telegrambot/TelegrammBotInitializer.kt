@@ -1,8 +1,8 @@
 package com.example.bukbot.service.telegrambot
 
+import com.example.bukbot.controller.vodds.VoddsController
 import com.example.bukbot.domain.interactors.auth.AuthInterractor
 import com.example.bukbot.domain.interactors.telegram.TelegramInterractor
-import com.example.bukbot.domain.interactors.browser.BrowserInterractor
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Component
 import javax.annotation.PostConstruct
@@ -21,8 +21,6 @@ class TelegrammBotInitializer{
     private lateinit var authInterractor: AuthInterractor
     @Autowired
     private lateinit var telegramInterractor: TelegramInterractor
-    @Autowired
-    private lateinit var browserInterractor: BrowserInterractor
 
     @PostConstruct
     fun start(){
@@ -39,9 +37,11 @@ class TelegrammBotInitializer{
         botOptions.proxyType = DefaultBotOptions.ProxyType.SOCKS5
 
         try {
-            botsApi.registerBot(TelegramBot(authInterractor, telegramInterractor, browserInterractor, botOptions))
+            botsApi.registerBot(TelegramBot(authInterractor, telegramInterractor, botOptions))
         } catch (e: TelegramApiException) {
             e.printStackTrace()
         }
+
+        //vController.start()
     }
 }

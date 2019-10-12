@@ -1,5 +1,6 @@
 package com.example.bukbot.data.database.Dao
 
+import com.example.bukbot.utils.DatePatterns.YEAR_MONTH_DAY_HOUR_MINUTE_SECOND
 import org.joda.time.DateTime
 import org.springframework.data.annotation.Id
 import org.springframework.data.mongodb.core.mapping.Document
@@ -17,10 +18,12 @@ class ValueBetsItem(
         val league: String,
         val event: String,
         val koef: Double,
-        val dateTime: DateTime
+        dateTime: DateTime
 ) {
     var work: Boolean = false
-    val hash: Int
+    private val hash: Int
+
+    val dateTime: String = dateTime.toString(YEAR_MONTH_DAY_HOUR_MINUTE_SECOND)
 
     init {
         hash = this.hashCode()

@@ -4,8 +4,6 @@ import com.example.bukbot.data.database.Dao.ApprovedUsers
 import com.example.bukbot.data.telegram.models.loginInfo.LoginInfo
 import com.example.bukbot.domain.interactors.auth.AuthInterractor
 import com.example.bukbot.domain.interactors.telegram.TelegramInterractor
-import com.example.bukbot.domain.interactors.browser.BrowserInterractor
-import com.example.bukbot.controller.browser.events.TelegramEventListener
 import com.example.bukbot.service.auth.events.AuthRequestListener
 import org.springframework.dao.EmptyResultDataAccessException
 import org.telegram.telegrambots.bots.DefaultBotOptions
@@ -34,16 +32,13 @@ import kotlin.collections.HashMap
 class TelegramBot(
         val authInterractor: AuthInterractor,
         val telegramInterractor: TelegramInterractor,
-        val browserInterractor: BrowserInterractor,
         options: DefaultBotOptions? = null
 ):      TelegramLongPollingBot(options),
-        AuthRequestListener,
-        TelegramEventListener{
+        AuthRequestListener{
     private var approvedUsersList = HashMap<String, ApprovedUsers>()
 
     init {
         authInterractor.addAuthEventListener(this)
-        browserInterractor.addEventListener(this)
         telegramInterractor.findAllApprovedUsers().map {
             approvedUsersList[it.chatId] = it
         }
@@ -119,18 +114,4 @@ class TelegramBot(
         }
     }
 
-    override fun pushMessage(text: String) {
-        approvedUsersList.forEach{
-            val sendMessage = SendMessage()
-            sendMessage.enableMarkdown(true)
-            sendMessage.chatId = it.value.chatId
-//        sendMessage.replyToMessageId = message.messageId
-            sendMessage.text = text
-            try {
-                execute(sendMessage)
-            } catch (e: Exception){
-
-            }
-        }
-    }
 }
