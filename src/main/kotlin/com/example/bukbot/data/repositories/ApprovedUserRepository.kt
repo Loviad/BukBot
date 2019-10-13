@@ -11,6 +11,7 @@ import org.springframework.stereotype.Component
 
 @Component
 class ApprovedUserRepository {
+
     @Autowired
     private lateinit var mongoTemplate: MongoTemplate
 

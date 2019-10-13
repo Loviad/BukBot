@@ -12,10 +12,10 @@
     "port" : 0
   },
   "recordConverter" : {
-    "bookFilter" : "SBO|IBC|PIN88|ISN|SBC",
-    "marketFilter" : "TODAY",
+    "bookFilter" : null,
+    "marketFilter" : null,
     "conversionInterval" : 10,
-    "autoClear" : true,
+    "autoClear" : false,
     "liveTTL" : 60000,
     "pendingTTL" : 60000,
     "earlyTTL" : 60000,
