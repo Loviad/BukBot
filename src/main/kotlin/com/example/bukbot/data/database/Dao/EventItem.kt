@@ -16,7 +16,9 @@ class EventItem(
         val pivotValue: Double,
         val rateOver: Double,
         val rateUnder: Double,
-        val rateEqual: Double
+        val rateEqual: Double,
+        val createdTime: Long,
+        val oddType: String
 ) {
 
 
@@ -30,7 +32,9 @@ class EventItem(
              pivotValue: Double,
              rateOver: Double,
              rateUnder: Double,
-             rateEqual: Double
+             rateEqual: Double,
+             createdTime: Long,
+             oddType: String
     ) : this(
             "${idEvent}_${idOdd}_${source}_${timeType}_${typePivot}_${pivotBias}_${pivotValue}",
             idEvent,
@@ -42,6 +46,8 @@ class EventItem(
             pivotValue,
             rateOver,
             rateUnder,
-            rateEqual
+            rateEqual,
+            createdTime,
+            oddType
     )
 }

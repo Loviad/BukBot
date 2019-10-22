@@ -31,6 +31,8 @@ dependencies {
 	implementation("com.google.guava:guava:25.+")
 	implementation("org.springframework.boot:spring-boot-starter-security")
 	//implementation("org.seleniumhq.selenium:selenium-chrome-driver:3.141.59")
+	implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.9.9")
+	implementation("com.squareup.okhttp3:okhttp:3.14.2")
 	implementation("org.jetbrains.kotlinx:kotlinx-coroutines-reactor")
 	implementation(fileTree("/home/sergey/projects/BukBot/libs"))
 	testImplementation("org.springframework.boot:spring-boot-starter-test") {

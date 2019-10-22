@@ -1,19 +1,35 @@
 package com.example.bukbot.controller.vodds
 
+import com.example.bukbot.BukBotApplication
 import com.example.bukbot.data.database.Dao.EventItem
 import com.example.bukbot.data.repositories.EventItemRepository
-import jayeson.lib.datastructure.SoccerEvent
-import jayeson.lib.recordfetcher.DeltaCrawlerSession
+import com.example.bukbot.service.rest.ApiClient
+import com.example.bukbot.utils.Settings.GETTING_SNAPSHOT
+import com.example.bukbot.utils.threadfabrick.VoddsThreadFactory
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.asCoroutineDispatcher
+import kotlinx.coroutines.launch
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Component
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
 import javax.annotation.PostConstruct
 import javax.annotation.PreDestroy
 
 @Component
-class VoddsController {
+class VoddsController: CoroutineScope {
 
     @Autowired
     private lateinit var mongo: EventItemRepository
+
+    @Autowired
+    private lateinit var api: ApiClient
+
+    override val coroutineContext = BukBotApplication.backgroundTaskDispatcher
+
+    private val eventsDispatcher = Executors.newSingleThreadExecutor(
+            VoddsThreadFactory()
+    ).asCoroutineDispatcher()
 
     //val systemProps = System.getProperties()
     init {
@@ -22,8 +38,9 @@ class VoddsController {
     }
     lateinit var cs: DelCrawlerSession
 
-
-    fun start(){
+    @PostConstruct
+    fun start() {
+        if (!GETTING_SNAPSHOT) return
         //systemProps.put("deltaCrawlerSessionConfigurationFile", "/home/sergey/projects/BukBot/conf/deltaCrawlerSession.json")
 
         cs = DelCrawlerSession()
@@ -31,16 +48,21 @@ class VoddsController {
 
         cs.connect()
         cs.waitConnection()
-        while (true) {
-            cs.waitConnection()
-            val events = cs.allEvents
+        launch(eventsDispatcher) {
+            while (true) {
+                mongo.clearEvents()
+                cs.waitConnection()
+                val events = cs.allEvents
+                var emptyListFlag: Boolean = events.size > 0
 
-            println("-------------------" + events.size + " events------------------------------------------------------------------")
-            for (e in events) {
+//                println("-------------------" + events.size + " events------------------------------------------------------------------")
+                for (e in events) {
 
-                val rs = e.getRecords()
+                    val rs = e.getRecords()
 
-                if (rs.isEmpty()) continue
+
+
+                    if (rs.isEmpty()) continue
 //                    val state = e.getLiveState()
 
 
@@ -53,34 +75,72 @@ class VoddsController {
                                 r.pivotType.name,
                                 r.pivotBias.name,
                                 r.pivotValue.toDouble(),
-                                r.rateOver.toDouble(),
-                                r.rateUnder.toDouble(),
-                                r.rateEqual.toDouble()
+                                 Math.round(r.rateOver.toDouble() * 1000.0) / 1000.0,
+                                Math.round(r.rateUnder.toDouble() * 1000.0) / 1000.0,
+                                Math.round(r.rateEqual.toDouble() * 1000.0) / 1000.0,
+                                r.createdTime,
+                                r.oddType.name
                         )
                         mongo.saveItem(item)
-                        println("(id:" + r.oddId + " Source:" + r.source + " TypeOdd:" + r.oddType + " TimeType:" + r.timeType + " TypePivot:" + r.pivotType + " PivotBias:" + r.pivotBias + " PivotValue:" + r.pivotValue + " RateOver:" +
-                                r.rateOver + " RateUnder:" +
-                                r.rateUnder + " RateEqual:" +
-                                r.rateEqual + ")")
+//                        println("(id:" + r.oddId + " Source:" + r.source + " TypeOdd:" + r.oddType + " TimeType:" + r.timeType + " TypePivot:" + r.pivotType + " PivotBias:" + r.pivotBias + " PivotValue:" + r.pivotValue + " RateOver:" +
+//                                r.rateOver + " RateUnder:" +
+//                                r.rateUnder + " RateEqual:" +
+//                                r.rateEqual + ")")
                     }
-                    println("\n")
+                }
+                if(emptyListFlag) {
+                    var fork: Int = 0
+                    val listPin = mongo.findByPin()
+                    listPin.forEach { pinItem ->
+                        val value = mongo.findForCheckValue(pinItem.idEvent, pinItem.idOdd)
+                        value.forEach { valueItem ->
+                            if (pinItem.timeType == valueItem.timeType &&
+                                    pinItem.typePivot == valueItem.typePivot &&
+                                    pinItem.pivotBias == valueItem.pivotBias &&
+                                    pinItem.pivotValue == valueItem.pivotValue) {
+
+                                try {
+                                    if (((valueItem.rateOver / pinItem.rateOver) * 100) - 100 > 1.5) {
+                                        println("rateOver " + "id -" + valueItem.idOdd + " timeType -" + valueItem.timeType + " pivotBias -" + valueItem.pivotBias + " typePivot -" + valueItem.typePivot + " typeValue -" + valueItem.pivotValue)
+                                        println("PIN88 \t-\t " + valueItem.source)
+                                        println("" + pinItem.rateOver + "\t-\t" + valueItem.rateOver)
+                                        print("\n")
+                                        api.getBetTicket(valueItem, TargetPivot.OVER)
+                                        fork++
+                                    }
+                                } catch (e: Exception) {
+                                }
+                                try {
+                                    if (((valueItem.rateUnder / pinItem.rateUnder) * 100) - 100 > 1.5) {
+                                        println("rateUnder id -" + valueItem.idOdd + " timeType -" + valueItem.timeType + " pivotBias -" + valueItem.pivotBias + " typePivot -" + valueItem.typePivot + " typeValue -" + valueItem.pivotValue)
+                                        println("PIN88 \t-\t " + valueItem.source)
+                                        println("" + pinItem.rateUnder + "\t-\t" + valueItem.rateUnder)
+                                        print("\n")
+                                        api.getBetTicket(valueItem, TargetPivot.UNDER)
+                                        fork++
+                                    }
+                                } catch (e: Exception) {
+                                }
+                                try {
+                                    if (((valueItem.rateEqual / pinItem.rateEqual) * 100) - 100 > 1.5) {
+                                        println("rateEqual id -" + valueItem.idOdd + " timeType -" + valueItem.timeType + " pivotBias -" + valueItem.pivotBias + " typePivot -" + valueItem.typePivot + " typeValue -" + valueItem.pivotValue)
+                                        println("PIN88 \t-\t " + valueItem.source)
+                                        println("" + pinItem.rateEqual + "\t-\t" + valueItem.rateEqual)
+                                        print("\n")
+                                        api.getBetTicket(valueItem, TargetPivot.EQUAL)
+                                        fork++
+                                    }
+                                } catch (e: Exception) {
+                                }
+                            }
+                        }
+                    }
+                    println("-------------------" + fork + " FORK------------------------------------------------------------------")
+                    TimeUnit.SECONDS.sleep(10L)
+                } else {
+                    TimeUnit.SECONDS.sleep(10L)
+                }
             }
-
-
-            try {
-
-
-            } catch (ex: Exception) {
-                println("Exception")
-                ex.printStackTrace()
-            }
-
-            try {
-                Thread.sleep(10000)
-            } catch (ex: Exception) {
-
-            }
-
         }
 //        val dft = DeltaFeedTracker()
 //        cs.addDeltaEventHandler(dft)
@@ -91,50 +151,10 @@ class VoddsController {
         cs.disconnect()
     }
 
-    @PostConstruct
-    fun testMongo(){
-        val listPin = mongo.findByPin()
-        listPin.forEach{ pinItem ->
-            val value = mongo.findForCheckValue(pinItem.idEvent, pinItem.idOdd)
-            value.forEach{ valueItem ->
-                if (pinItem.timeType == valueItem.timeType &&
-                    pinItem.typePivot == valueItem.typePivot &&
-                    pinItem.pivotBias == valueItem.pivotBias &&
-                    pinItem.pivotValue == valueItem.pivotValue) {
-
-                    try {
-                        if (((valueItem.rateOver / pinItem.rateOver) * 100) - 100 > 1.5) {
-                            println("rateOver event" + "id -" + valueItem.idOdd + " timeType -" + valueItem.timeType + " pivotBias -" + valueItem.pivotBias + " typePivot -" + valueItem.typePivot)
-                            println("PIN88 \t-\t " + valueItem.source)
-                            println("" + pinItem.rateOver + "\t-\t" + valueItem.rateOver)
-                            print("\n")
-                        }
-                    } catch (e: Exception){}
-                    try {
-                        if (((valueItem.rateUnder/pinItem.rateUnder)*100)-100 > 1.5 ){
-                            println("rateUnder id -" + valueItem.idOdd + " timeType -" + valueItem.timeType + " pivotBias -" + valueItem.pivotBias + " typePivot -" + valueItem.typePivot)
-                            println("PIN88 \t-\t " + valueItem.source)
-                            println("" + pinItem.rateUnder + "\t-\t" + valueItem.rateUnder)
-                            print("\n")
-                        }
-                    } catch (e: Exception){}
-                    try {
-                        if (((valueItem.rateEqual/pinItem.rateEqual)*100)-100 > 1.5 ){
-                            println("rateEqual id -" + valueItem.idOdd + " timeType -" + valueItem.timeType + " pivotBias -" + valueItem.pivotBias + " typePivot -" + valueItem.typePivot)
-                            println("PIN88 \t-\t " + valueItem.source)
-                            println("" + pinItem.rateEqual + "\t-\t" + valueItem.rateEqual)
-                            print("\n")
-                        }
-                    } catch (e: Exception){}
-                }
-            }
-        }
-
-        try {
-            Thread.sleep(600000)
-        } catch (ex: Exception) {
-
-        }
+    enum class TargetPivot{
+        OVER,
+        UNDER,
+        EQUAL
     }
 
 }

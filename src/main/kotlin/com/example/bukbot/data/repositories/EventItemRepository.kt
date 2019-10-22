@@ -22,6 +22,10 @@ class EventItemRepository {
         )
     }
 
+    fun clearEvents(){
+        mongoTemplate.getCollection("eventItem").drop()
+    }
+
     fun findForCheckValue(eventId: String, oddId: Int): List<EventItem>{
         return mongoTemplate.find(
                 query(

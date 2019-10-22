@@ -1,5 +1,6 @@
 package com.example.bukbot.controller.vodds
 
+import com.example.bukbot.utils.Settings.PATH_TO_SETTING_API
 import com.fasterxml.jackson.databind.ObjectMapper
 import jayeson.lib.recordfetcher.*
 import com.google.common.eventbus.Subscribe
@@ -41,7 +42,7 @@ open class DelCrawlerSession : CrawlerSession() {
     override fun initializeConfiguration() {
         val mapper = ObjectMapper()
 //        val k = System.getProperties()
-        val user: DeltaCrawlerSessionConfig = mapper.readValue(File("/home/sergey/projects/BukBot/conf/deltaCrawlerSession.json"), DeltaCrawlerSessionConfig::class.java)
+        val user: DeltaCrawlerSessionConfig = mapper.readValue(File(PATH_TO_SETTING_API), DeltaCrawlerSessionConfig::class.java)
 //        this.config = JacksonConfig.readConfig("deltaCrawlerSession.json", null, DeltaCrawlerSessionConfig::class.java, JacksonConfigFormat.JSON) as CrawlerSessionConfig
         this.config = user
         if (this.config == null) {
