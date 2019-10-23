@@ -1,6 +1,5 @@
 package com.example.bukbot.controller.vodds
 
-import com.example.bukbot.BukBotApplication
 import com.example.bukbot.data.database.Dao.EventItem
 import com.example.bukbot.data.repositories.EventItemRepository
 import com.example.bukbot.service.rest.ApiClient
@@ -25,9 +24,7 @@ class VoddsController: CoroutineScope {
     @Autowired
     private lateinit var api: ApiClient
 
-    override val coroutineContext = BukBotApplication.backgroundTaskDispatcher
-
-    private val eventsDispatcher = Executors.newSingleThreadExecutor(
+    override val coroutineContext = Executors.newSingleThreadExecutor(
             VoddsThreadFactory()
     ).asCoroutineDispatcher()
 
@@ -40,6 +37,8 @@ class VoddsController: CoroutineScope {
 
     @PostConstruct
     fun start() {
+        api.trest()
+        api.getBalance()
         if (!GETTING_SNAPSHOT) return
         //systemProps.put("deltaCrawlerSessionConfigurationFile", "/home/sergey/projects/BukBot/conf/deltaCrawlerSession.json")
 
@@ -48,7 +47,7 @@ class VoddsController: CoroutineScope {
 
         cs.connect()
         cs.waitConnection()
-        launch(eventsDispatcher) {
+        launch{
             while (true) {
                 mongo.clearEvents()
                 cs.waitConnection()
@@ -101,33 +100,33 @@ class VoddsController: CoroutineScope {
 
                                 try {
                                     if (((valueItem.rateOver / pinItem.rateOver) * 100) - 100 > 1.5) {
-                                        println("rateOver " + "id -" + valueItem.idOdd + " timeType -" + valueItem.timeType + " pivotBias -" + valueItem.pivotBias + " typePivot -" + valueItem.typePivot + " typeValue -" + valueItem.pivotValue)
-                                        println("PIN88 \t-\t " + valueItem.source)
-                                        println("" + pinItem.rateOver + "\t-\t" + valueItem.rateOver)
-                                        print("\n")
-                                        api.getBetTicket(valueItem, TargetPivot.OVER)
+//                                        println("rateOver " + "id -" + valueItem.idOdd + " timeType -" + valueItem.timeType + " pivotBias -" + valueItem.pivotBias + " typePivot -" + valueItem.typePivot + " typeValue -" + valueItem.pivotValue)
+//                                        println("PIN88 \t-\t " + valueItem.source)
+//                                        println("" + pinItem.rateOver + "\t-\t" + valueItem.rateOver)
+//                                        print("\n")
+                                        api.checkAndPlaceBetTicket(valueItem, TargetPivot.OVER)
                                         fork++
                                     }
                                 } catch (e: Exception) {
                                 }
                                 try {
                                     if (((valueItem.rateUnder / pinItem.rateUnder) * 100) - 100 > 1.5) {
-                                        println("rateUnder id -" + valueItem.idOdd + " timeType -" + valueItem.timeType + " pivotBias -" + valueItem.pivotBias + " typePivot -" + valueItem.typePivot + " typeValue -" + valueItem.pivotValue)
-                                        println("PIN88 \t-\t " + valueItem.source)
-                                        println("" + pinItem.rateUnder + "\t-\t" + valueItem.rateUnder)
-                                        print("\n")
-                                        api.getBetTicket(valueItem, TargetPivot.UNDER)
+//                                        println("rateUnder id -" + valueItem.idOdd + " timeType -" + valueItem.timeType + " pivotBias -" + valueItem.pivotBias + " typePivot -" + valueItem.typePivot + " typeValue -" + valueItem.pivotValue)
+//                                        println("PIN88 \t-\t " + valueItem.source)
+//                                        println("" + pinItem.rateUnder + "\t-\t" + valueItem.rateUnder)
+//                                        print("\n")
+                                        api.checkAndPlaceBetTicket(valueItem, TargetPivot.UNDER)
                                         fork++
                                     }
                                 } catch (e: Exception) {
                                 }
                                 try {
                                     if (((valueItem.rateEqual / pinItem.rateEqual) * 100) - 100 > 1.5) {
-                                        println("rateEqual id -" + valueItem.idOdd + " timeType -" + valueItem.timeType + " pivotBias -" + valueItem.pivotBias + " typePivot -" + valueItem.typePivot + " typeValue -" + valueItem.pivotValue)
-                                        println("PIN88 \t-\t " + valueItem.source)
-                                        println("" + pinItem.rateEqual + "\t-\t" + valueItem.rateEqual)
-                                        print("\n")
-                                        api.getBetTicket(valueItem, TargetPivot.EQUAL)
+//                                        println("rateEqual id -" + valueItem.idOdd + " timeType -" + valueItem.timeType + " pivotBias -" + valueItem.pivotBias + " typePivot -" + valueItem.typePivot + " typeValue -" + valueItem.pivotValue)
+//                                        println("PIN88 \t-\t " + valueItem.source)
+//                                        println("" + pinItem.rateEqual + "\t-\t" + valueItem.rateEqual)
+//                                        print("\n")
+                                        api.checkAndPlaceBetTicket(valueItem, TargetPivot.EQUAL)
                                         fork++
                                     }
                                 } catch (e: Exception) {

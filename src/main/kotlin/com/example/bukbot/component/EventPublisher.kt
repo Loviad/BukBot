@@ -13,7 +13,6 @@ class EventPublisher : ApplicationEventPublisherAware {
 
     fun sendAuthAccept() {
         LOGGER.info("Publish")
-
 //        val info = LoginInfo("heap", "pass", "123123")
 //        eventPublisher!!.publishEvent(info)
     }

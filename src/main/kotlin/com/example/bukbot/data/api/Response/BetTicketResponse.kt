@@ -1,6 +1,6 @@
-package com.example.bukbot.data.api
+package com.example.bukbot.data.api.Response
 
-data class BetTicket(
+data class BetTicketResponse(
         val actionStatus: String?,
         val actionMessage: String?,
         val reqId: String?,

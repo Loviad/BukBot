@@ -1,21 +1,23 @@
 package com.example.bukbot.data.database.Dao
 
 import org.springframework.data.annotation.Id
+import org.springframework.data.mongodb.core.mapping.Document
 
+@Document
 class Bet(
         @Id
-        val betId: String,
-        val idEvent: String,
-        val idOdd: Int,
-        val source: String,
-        val timeType: String,
-        val typePivot: String,
+        val id: String,
+        val eventId: String,
+        val homeTeam: String,
+        val awayTeam: String,
+        val betStake: Double,
+        val returnAmount: Double,
         val pivotBias: String,
-        val pivotValue: Double,
-        val rateOver: Double,
-        val rateUnder: Double,
-        val rateEqual: Double,
-        val createdTime: Long,
-        val oddType: String,
-        val status: String
+        val serverPivot: Double,
+        val league: String,
+        val serverOdd: Double,
+        val targetType: String,
+        val betStatus: Int,
+        val betTime: String,
+        val settledTime: String
 )
