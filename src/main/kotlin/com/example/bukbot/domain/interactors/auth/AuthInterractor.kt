@@ -17,6 +17,7 @@ class AuthInterractor {
     private lateinit var approvedUserRepository: ApprovedUserRepository
 
     private val eventListener = ArrayList<AuthEventListener>()
+
     fun addAuthEventListener(listener: AuthEventListener){
         eventListener.add(listener)
     }

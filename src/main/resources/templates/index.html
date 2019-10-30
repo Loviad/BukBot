@@ -3,9 +3,9 @@
 
 <head>
     <!-- Required meta tags -->
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
-    <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no"/>
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8"/>
 
     <title>My first BootstrapVue app</title>
 
@@ -25,38 +25,115 @@
     <link rel="stylesheet" href="assets/vendor/fonts/flag-icon-css/flag-icon.min.css">
 
     <!-- Required scripts -->
+    <script src="assets/libs/js/axios.min.js"></script>
     <script src="assets/my/vue.min.js"></script>
     <script src="assets/my/bootstrap-vue.min.js"></script>
 </head>
 
 <body>
 <div id="contents">
-        <!-- ============================================================== -->
-        <!-- end left sidebar -->
-        <!-- ============================================================== -->
-        <div class="nav-left-sidebar sidebar-dark">
-            <b-nav vertical pills >
-                <b-navbar-brand href="#">BukBot</b-navbar-brand>
-                <b-nav-item href="/"><i class="fas fa-desktop"></i>Главная</b-nav-item>
-                <b-nav-item v-b-toggle.collapse-1 variant="dark"><i class="fas fa-chart-area"></i>Статистика</b-nav-item>
-                <b-collapse id="collapse-1" class="submenu">
-                    <b-nav-item href="/valuebets">Valuebets</b-nav-item>
-                </b-collapse>
-            </b-nav>
-        </div>
-        <!-- ============================================================== -->
-        <!-- end left sidebar -->
-        <!-- ============================================================== -->
+    <!-- ============================================================== -->
+    <!-- end left sidebar -->
+    <!-- ============================================================== -->
+    <div class="nav-left-sidebar sidebar-dark">
+        <b-nav vertical pills>
+            <b-navbar-brand href="#">BukBot</b-navbar-brand>
+            <b-nav-item href="/"><i class="fas fa-desktop"></i>Главная</b-nav-item>
+            <b-nav-item v-b-toggle.collapse-1 variant="dark"><i class="fas fa-chart-area"></i>Статистика</b-nav-item>
+            <b-collapse id="collapse-1" class="submenu">
+                <b-nav-item href="/valuebets">Valuebets</b-nav-item>
+            </b-collapse>
+        </b-nav>
+    </div>
+    <!-- ============================================================== -->
+    <!-- end left sidebar -->
+    <!-- ============================================================== -->
 
+    <!-- ============================================================== -->
+    <!-- main wrapper -->
+    <!-- ============================================================== -->
+    <div class="dashboard-wrapper">
+        <div class="container-fluid  dashboard-content">
+            <div class="col-sm-12">
+                <b-row class="text-right mb-10">
+                    <b-button class="mr-4" v-on:click="parseStateClick()"
+                              v-bind:variant="[ parsStateValue.class ?  'success' : 'secondary']">
+                        <b-spinner v-if="this.parsStateValue.spinVisible" small type="grow"></b-spinner>
+                        Парсинг: {{ parsState }}
+                    </b-button>
+
+                    <b-button class="mr-4" v-on:click="bettingStateClick()"
+                              v-bind:variant="[ bettingStateValue.class ?  'success' : 'secondary']">
+                        <b-spinner v-if="this.bettingStateValue.spinVisible" small type="grow"></b-spinner>
+                        Установка ставок: {{ betState }}
+                    </b-button>
+                    <b-button class="mr-4" v-on:click="testClick()">
+                        Установка ставок: {{ betState }}
+                    </b-button>
+                    <h2 style="position: absolute; right: 0px; color: #377bff;">Баланс: {{ balance }} </h2>
+                </b-row>
+
+                <b-row cla>
+                    <div class="col shadow-sm p-3 mt-5 mr-5 mb-5 bg-light rounded">
+                        <div class="row p-3 mb-2 ml-2 mr-2">
+                            <div class="col p-1">Дом</div>
+                            <div class="col p-1">Гости</div>
+                            <div class="col p-1">Контора</div>
+                            <div class="col p-1">Pin.к</div>
+                            <div class="col p-1">Кон.к</div>
+                            <div class="col p-1">Значение</div>
+                            <div class="col p-1">HDP/TOTAL</div>
+                        </div>
+                        <div v-for="item in bets" class="row shadow p-3 mb-2 ml-2 mr-2 bg-white rounded">
+                            <div class="col p-1">{{ item.home }}</div>
+                            <div class="col p-1">{{ item.guest }}</div>
+                            <div class="col p-1">{{ item.source }}</div>
+                            <div class="col p-1">{{ item.pinVal }}</div>
+                            <div class="col p-1">{{ item.sourceVal }}</div>
+                            <div class="col p-1">{{ item.valueType }}</div>
+                            <div class="col p-1">{{ item.type }}</div>
+                        </div>
+                    </div>
+                    <div class="col shadow-sm p-3 mt-5 mb-5 bg-light rounded">
+                        {{ colCount }}
+                    </div>
+                    <div class="col shadow-sm p-3 mt-5 ml-5 mb-5 bg-light rounded">
+                        3 из 3
+                    </div>
+                </b-row>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================== -->
+    <!-- end main wrapper -->
+    <!-- ============================================================== -->
 
 </div>
-    <script th:inline="javascript">
+<script th:inline="javascript">
+    const axiosConfig = {
+        headers: {
+        "content-Type": "application/x-www-form-urlencoded",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3"
+        },
+        credentials: "same-origin"
+    };
+
     var app = new Vue({
         el: '#contents',
         data: {
             id: /*[[${id}]]*/,
-            stateParser: 'btn-light',
-            stateTelegram: 'btn-success'
+            balance: '-',
+            hash: /*[[${_csrf.token}]]*/,
+            parsStateValue: {
+               class: /*[[${stateParse}]]*/,
+               spinVisible: false
+            },
+            bettingStateValue: {
+               class: /*[[${stateBetting}]]*/,
+               spinVisible: false
+            },
+            bets: [ ]
         },
         created() {
             this.setupStream();
@@ -66,16 +143,77 @@
 
                 let es = new EventSource('../data_listen/' + String(this.id));
 
-                es.addEventListener('statusChange', event => {
+                es.addEventListener('systemState', event => {
                     let data = JSON.parse(event.data);
-                    this.stateParser = data.value;
+                    this.parsStateValue.class = data.stateParser;
+                    this.parsStateValue.spinVisible = false;
+                    this.bettingStateValue.class = data.stateBetting;
+                    this.bettingStateValue.spinVisible = false;
+                }, false);
+
+                es.addEventListener('balance', event => {
+                    let data = JSON.parse(event.data);
+                    this.parsStateValue.class = data.balance;
+                }, false);
+
+                es.addEventListener('placeBet', event => {
+                    let data = JSON.parse(event.data);
+                    console.log(data);
+                    if(this.colCount < 10){
+                        this.bets.push(data);
+                     } else {
+                        this.bets.pop();
+                        this.bets.unshift(data);
+                    }
+
+
+
                 }, false);
 
                 es.addEventListener('error', event => {
                 }, false);
+            },
+            parseStateClick() {
+                this.parsStateValue.spinVisible = true;
+                axios.post('/command', 'name=switchParse&_csrf='+this.hash, axiosConfig)
+            },
+            bettingStateClick() {
+                this.bettingStateValue.spinVisible = true;
+                axios.post('/command', 'name=switchBetting&_csrf='+this.hash, axiosConfig)
+            },
+            testClick() {
+                if(this.colCount < 10){
+                    this.bets.push({message: 'qwerty', count: this.colCount +1, lp: 'asdfghjklqwert', lk: 55});
+                } else {
+                    this.bets.pop();
+                    this.bets.unshift({message: 'qwerty', count: this.colCount +1, lp: 'asdfghjklqwert', lk: 55});
+                }
+            }
+        },
+
+        computed: {
+            parsState: function(){
+                if(this.parsStateValue.class){
+                    return "Active"
+                } else {
+                    return "Disabled"
+                }
+            },
+            betState: function(){
+                if(this.bettingStateValue.class){
+                    return "Active"
+                } else {
+                    return "Disabled"
+                }
+            },
+            colCount: function(){
+                return Object.keys(this.bets).length;
             }
         }
     });
-    </script>
+
+
+
+</script>
 </body>
 </html> 

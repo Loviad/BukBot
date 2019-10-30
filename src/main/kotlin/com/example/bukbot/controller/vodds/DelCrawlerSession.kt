@@ -1,6 +1,7 @@
 package com.example.bukbot.controller.vodds
 
-import com.example.bukbot.utils.Settings.PATH_TO_SETTING_API
+
+import com.example.bukbot.utils.Constans.PATH_TO_SETTING_API
 import com.fasterxml.jackson.databind.ObjectMapper
 import jayeson.lib.recordfetcher.*
 import com.google.common.eventbus.Subscribe

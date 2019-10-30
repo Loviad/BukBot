@@ -53,11 +53,36 @@ class TelegramBot(
                     when(val command = message.text.substring(it.offset, it.offset + it.length)){
                         "/approved" -> sendTxtMessage(message, "Привет")
                         "/login" -> approvedLogin(message, IntRange(it.offset, it.offset + it.length))
+                        "/credit" -> getCredit(message)
+                        "/balance" -> getBalance(message)
+                        "/setedbets" -> setedBets(message)
+                        "/openedbets" -> openedBets(message)
+                        "/status" -> getStatusSystem(message)
+                        "/test" -> testApi()
                         else -> sendTxtMessage(message, " Я не понимаю: ${command}")
                     }
                 }
             } ?: sendTxtMessage(message, "Введите команду")
         }
+    }
+
+    private fun getStatusSystem(message: Message) {
+        val state = telegramInterractor.getSystemState()
+
+        val sendMessage = SendMessage()
+        sendMessage.enableMarkdown(true)
+        sendMessage.chatId = message.chatId.toString()
+        sendMessage.text = "Парсинг: " + if (!state.first) {"No Active\n"} else {"Active\n"} + "Установка ставок: " + if (!state.second) {"No Active\n"} else {"Active\n"}
+        try {
+            execute(sendMessage)
+        } catch (e: Exception){
+
+        }
+
+    }
+
+    private fun getBalance(message: Message) {
+        telegramInterractor.getBalance()
     }
 
     fun approvedLogin(message: Message, range: IntRange) {
@@ -67,6 +92,30 @@ class TelegramBot(
         catch (e: EmptyResultDataAccessException){
             //TODO : зафиксировать попытку левого входа
         }
+    }
+    fun getCredit(message: Message){
+        val sendMessage = SendMessage()
+        sendMessage.enableMarkdown(true)
+        sendMessage.chatId = message.chatId.toString()
+//        sendMessage.replyToMessageId = message.messageId
+        sendMessage.text = telegramInterractor.getCredit().toString()
+        try {
+            execute(sendMessage)
+        } catch (e: Exception){
+
+        }
+    }
+
+    fun testApi(){
+        telegramInterractor.test()
+    }
+
+    private fun setedBets(message: Message){
+        telegramInterractor.setedBets()
+    }
+
+    private fun openedBets(message: Message){
+        telegramInterractor.openedBets()
     }
 
     private fun checkApproved(message: Message):Boolean{

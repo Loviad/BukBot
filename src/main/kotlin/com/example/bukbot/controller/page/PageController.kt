@@ -1,30 +1,42 @@
 package com.example.bukbot.controller.page
 
 import com.example.bukbot.BukBotApplication.Companion.backgroundTaskDispatcher
+import com.example.bukbot.data.SSEModel.PlacingBet
+import com.example.bukbot.data.SSEModel.SystemStateMessage
 import com.example.bukbot.data.browsermodels.StatusBrowser
 import com.example.bukbot.data.database.Dao.ValueBetsItem
 import com.example.bukbot.data.telegram.models.IMessageData
 import com.example.bukbot.data.telegram.models.loginInfo.LoginInfo
 import com.example.bukbot.domain.interactors.auth.AuthInterractor
+import com.example.bukbot.domain.interactors.page.PageInterractor
+import com.example.bukbot.domain.interactors.vodds.VoddsInterractor
+import com.example.bukbot.service.events.IGettingSnapshotListener
+import com.example.bukbot.service.events.VoddsPlacingBetListener
+import com.example.bukbot.service.events.VoddsSnapshotListener
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import org.springframework.stereotype.Controller
-import org.springframework.web.bind.annotation.GetMapping
-import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.security.core.Authentication
 import org.springframework.ui.Model
+import org.springframework.web.bind.annotation.*
 import java.io.IOException
 import java.util.*
 import java.util.concurrent.Executors
+import javax.annotation.PostConstruct
 import kotlin.collections.HashMap
 import kotlin.math.abs
 
 
+
+
 @Controller
-class PageController: CoroutineScope {
+class PageController: CoroutineScope,
+        VoddsSnapshotListener,
+        VoddsPlacingBetListener {
 
     override val coroutineContext = backgroundTaskDispatcher
 
@@ -36,13 +48,28 @@ class PageController: CoroutineScope {
 
     @Autowired
     private lateinit var authInterractor: AuthInterractor
+    @Autowired
+    private lateinit var pageInterractor: PageInterractor
+    @Autowired
+    private lateinit var voddsInterractor: VoddsInterractor
+
 
     private var uid = abs(UUID.randomUUID().hashCode()).toString()
+
+    @PostConstruct
+    fun init(){
+        voddsInterractor.addEventListener(this)
+    }
 
 
     @GetMapping("/")
     fun index(model: Model, authentication: Authentication): String {
+        val state = pageInterractor.getSystemState()
+        val balance = voddsInterractor.getBalance()
         model.addAttribute("id", authentication.name)
+        model.addAttribute("stateParse", state.first)
+        model.addAttribute("stateBetting", state.second)
+        model.addAttribute("balance", balance)
         return "index"
     }
 
@@ -65,7 +92,6 @@ class PageController: CoroutineScope {
 
     @GetMapping("/data_listen/{id}")
     fun dataListener(@PathVariable("id") id: String): SseEmitter {
-        emittersData[id]?.complete()
         val emitter = SseEmitter(180_000L)
         emitter.onTimeout { emitter.complete() }
         emitter.onCompletion { emittersData.remove(id) }
@@ -78,9 +104,9 @@ class PageController: CoroutineScope {
         model.addAttribute("id", authentication.name)
         return "valuebets"
     }
+
     @GetMapping("/valuebets/{id}")
     fun valuePage(@PathVariable("id") id: String): SseEmitter {
-        emittersData[id]?.complete()
         val emitter = SseEmitter(180_000L)
         emitter.onTimeout { emitter.complete() }
         emitter.onCompletion { emittersData.remove(id) }
@@ -88,22 +114,73 @@ class PageController: CoroutineScope {
         return emitter
     }
 
+    @PostMapping(path = ["/command"])
+    @ResponseStatus(HttpStatus.OK)
+    fun commandParse(@RequestBody note: String, @RequestParam(required = false) name: String){
+        when(name){
+            "switchParse" -> switchParse()
+        }
+    }
 
-//
-//    @EventListener
-//    fun handleEvents(messageData: IMessageData) {
-//        emitters.forEach { emitter ->
-//            nonBlockingService.execute {
-//                try {
-//                    emitter.value.send(emitter.key to abs(UUID.randomUUID().hashCode()).toString(),
-//                            MediaType.APPLICATION_JSON)
-//
-//                } catch (ioe: IOException) {
-//                    emitters.remove(emitter.key)
-//                }
-//            }
-//        }
-//    }
+    private fun switchParse() {
+        pageInterractor.switchParse()
+    }
+
+    override fun onStartSnapshot() {
+        val state = pageInterractor.getSystemState()
+        emittersData.forEach { emitter ->
+            nonBlockingService.execute {
+                try {
+                    val k = SseEmitter.event()
+                            .name("systemState")
+                            .reconnectTime(20_000L)
+                            .data(SystemStateMessage(state.first, state.second),
+                                    MediaType.APPLICATION_JSON)
+                    emitter.value.send(k)
+
+                } catch (ioe: IOException) {
+                    emittersData.remove(emitter.key)
+                }
+            }
+        }
+    }
+
+    override fun onPlacingBet(item: PlacingBet) {
+        emittersData.forEach { emitter ->
+            nonBlockingService.execute {
+                try {
+                    val k = SseEmitter.event()
+                            .name("placeBet")
+                            .reconnectTime(20_000L)
+                            .data(item,
+                                    MediaType.APPLICATION_JSON)
+                    emitter.value.send(k)
+
+                } catch (ioe: IOException) {
+                    emittersData.remove(emitter.key)
+                }
+            }
+        }
+    }
+
+    override fun onStopSnapshot() {
+        val state = pageInterractor.getSystemState()
+        emittersData.forEach { emitter ->
+            nonBlockingService.execute {
+                try {
+                    val k = SseEmitter.event()
+                            .name("systemState")
+                            .reconnectTime(20_000L)
+                            .data(SystemStateMessage(state.first, state.second),
+                                    MediaType.APPLICATION_JSON)
+                    emitter.value.send(k)
+
+                } catch (ioe: IOException) {
+                    emittersData.remove(emitter.key)
+                }
+            }
+        }
+    }
 
     fun sendLogin(messageData: IMessageData) = launch {
         if (messageData is LoginInfo){
@@ -157,6 +234,24 @@ class PageController: CoroutineScope {
                             .name("statusChange")
                             .reconnectTime(20_000L)
                             .data(StatusBrowser(status),
+                                    MediaType.APPLICATION_JSON)
+                    emitter.value.send(k)
+
+                } catch (ioe: IOException) {
+                    emittersData.remove(emitter.key)
+                }
+            }
+        }
+    }
+
+    suspend fun sendSystemState(state: Pair<Boolean, Boolean>){
+        emittersData.forEach { emitter ->
+            nonBlockingService.execute {
+                try {
+                    val k = SseEmitter.event()
+                            .name("systemState")
+                            .reconnectTime(20_000L)
+                            .data(SystemStateMessage(state.first, state.second),
                                     MediaType.APPLICATION_JSON)
                     emitter.value.send(k)
 

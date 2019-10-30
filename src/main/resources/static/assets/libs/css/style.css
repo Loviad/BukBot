@@ -160,7 +160,7 @@ body {
     font-weight: normal;
     font-size: 14px;
     color: #71748d;
-    background-color: #f8f9fa;
+    background-color: #dcdcdc;
     -webkit-font-smoothing: antialiased;
 }
 
@@ -210,11 +210,11 @@ p:last-child {
 }
 
 a {
-    color: #71748d;
+    color: #d8d9e4;
 }
 
 a:hover {
-    color: #ff407b;
+    color: #377bff;
     text-decoration: none;
 }
 
@@ -1714,7 +1714,7 @@ Left Navigation Sidebar
     padding-left: 12px;
     padding-right: 12px;
     /* margin-top: 5px; */
-    background: #646EB9;
+    background: #1f3e79;
 }
 
 .nav-left-sidebar .submenu .nav .nav-item .nav-link {
@@ -2693,30 +2693,30 @@ clip-path: polygon(10% 25%, 10% 0, 35% 0%, 65% 0%, 90% 0, 90% 25%, 90% 50%, 91% 
 
 .btn-secondary {
     color: #fff;
-    background-color: #ff407b;
-    border-color: #ff407b;
+    background-color: #6c757d;
+    border-color: #6c757d;
 }
 
 .btn-secondary:hover {
     color: #fff;
-    background-color: #f0346e;
-    border-color: #f0346e;
+    background-color: #3d4348;
+    border-color: #3d4348;
 }
 
 .btn-secondary.focus,
 .btn-secondary:focus {
     color: #fff;
-    background-color: #f0346e;
-    border-color: #f0346e;
-    box-shadow: 0 0 0 1px rgb(222, 17, 80);
+    background-color: #6c757d;
+    border-color: #6c757d;
+    box-shadow: 0 0 0 1px rgb(61, 67, 72);
 }
 
 .btn-secondary:not(:disabled):not(.disabled).active,
 .btn-secondary:not(:disabled):not(.disabled):active,
 .show>.btn-secondary.dropdown-toggle {
     color: #fff;
-    background-color: #f0346e;
-    border-color: #f0346e;
+    background-color: #9dabb7;
+    border-color: #9dabb7;
 }
 
 

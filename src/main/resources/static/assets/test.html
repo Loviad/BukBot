@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+
+    <title>My first BootstrapVue app</title>
+
+    <!-- Required Stylesheets -->
+    <link
+            type="text/css"
+            rel="stylesheet"
+            href="my/bootstrap.min.css"
+    />
+    <link
+            type="text/css"
+            rel="stylesheet"
+            href="my/bootstrap-vue.min.css"
+    />
+    <link rel="stylesheet" href="libs/css/style.css">
+    <link rel="stylesheet" href="vendor/fonts/fontawesome/css/fontawesome-all.css">
+    <link rel="stylesheet" href="vendor/fonts/flag-icon-css/flag-icon.min.css">
+
+    <!-- Required scripts -->
+    <script src="my/vue.min.js"></script>
+    <script src="my/bootstrap-vue.min.js"></script>
+</head>
+
+<body>
+    <!-- ============================================================== -->
+    <!-- end left sidebar -->
+    <!-- ============================================================== -->
+    <div class="nav-left-sidebar sidebar-dark">
+        <b-nav vertical pills >
+            <b-navbar-brand href="#">BukBot</b-navbar-brand>
+            <b-nav-item href="/"><i class="fas fa-desktop"></i>Главная</b-nav-item>
+            <b-nav-item v-b-toggle.collapse-1 variant="dark"><i class="fas fa-chart-area"></i>Статистика</b-nav-item>
+            <b-collapse id="collapse-1" class="submenu">
+                <b-nav-item href="/valuebets">Valuebets</b-nav-item>
+            </b-collapse>
+        </b-nav>
+    </div>
+    <!-- ============================================================== -->
+    <!-- end left sidebar -->
+    <!-- ============================================================== -->
+
+
+
+</body>
+</html>
