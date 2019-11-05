@@ -7,7 +7,6 @@ import com.example.bukbot.data.api.Response.BetTicketResponse
 import com.example.bukbot.data.api.Response.BetPlaceResponse
 import com.example.bukbot.data.database.Dao.Bet
 import com.example.bukbot.data.database.Dao.EventItem
-import com.example.bukbot.utils.Constans.GOLD
 import com.example.bukbot.utils.Settings
 import com.example.bukbot.utils.getAccessToken
 import com.example.bukbot.utils.threadfabrick.ApiThreadFactory
@@ -56,7 +55,7 @@ class ApiClient: CoroutineScope {
                     .add("reqId", UUID.randomUUID().toString())
                     .build()
             val request = Request.Builder()
-                    .url("http://biweb-unity-test.olesportsresearch.com/getopenedbets")
+                    .url("https://biweb-unity.stagingunity.com/getopenedbets")
                     .post(body)
                     .build()
             try {
@@ -75,9 +74,13 @@ class ApiClient: CoroutineScope {
                     .add("username", "unity_group153")
                     .add("accessToken", getAccessToken()!!)
                     .add("reqId", UUID.randomUUID().toString())
+//                    .add("getPl", "true")
+//                    .add("getCredit", "true")
+//                    .add("getOutstanding", "true")
                     .build()
             val request = Request.Builder()
-                    .url("http://biweb-unity-test.olesportsresearch.com/getuserbalance")
+                    .addHeader("ContentType", "application/x-www-form-urlencoded")
+                    .url("https://biweb-unity.stagingunity.com/getuserbalance")
                     .post(body)
                     .build()
             try {
@@ -109,7 +112,7 @@ class ApiClient: CoroutineScope {
                     .add("page", "0")
                     .build()
             val request = Request.Builder()
-                    .url("http://biweb-unity-test.olesportsresearch.com/getsettledbets")
+                    .url("https://biweb-unity.stagingunity.com/getsettledbets")
                     .post(body)
                     .build()
             try {
@@ -123,19 +126,22 @@ class ApiClient: CoroutineScope {
     }
 
     fun getCreditBalance(): Double {
-        launch(backDispatcher){ getCredit() }
+//        launch(backDispatcher){
+            getCredit()
+//        }
         return balance
     }
 
 
     @Throws(IOException::class)
-    suspend fun getCredit() {
+    fun getCredit() {
         val body = FormBody.Builder()
                 .add("username", "unity_group153")
                 .add("accessToken", getAccessToken()!!)
+                .add("reqId", UUID.randomUUID().toString())
                 .build()
         val request = Request.Builder()
-                .url("http://biweb-unity-test.olesportsresearch.com/getusercredit")
+                .url("https://biweb-unity.stagingunity.com/getusercredit")
                 .post(body)
                 .build()
         try {
@@ -158,7 +164,7 @@ class ApiClient: CoroutineScope {
                 .add("id", "unity_fake_group57_ibc1|unity_fake_group57_ibc1|1571831471177")
                 .build()
         val request = Request.Builder()
-                .url("http://biweb-unity-test.olesportsresearch.com/getbetstatus")
+                .url("https://biweb-unity.stagingunity.com/getbetstatus")
                 .post(body)
                 .build()
         try {
@@ -170,18 +176,15 @@ class ApiClient: CoroutineScope {
         }
     }
 
-    fun checkAndPlaceBetTicket(item: EventItem, target: VoddsController.TargetPivot, code: (result: Boolean) -> Unit){
+    fun checkAndPlaceBetTicket(item: EventItem, target: VoddsController.TargetPivot, code: (result: Boolean, txt: String) -> Unit){
             placeBetTicket(item, target, code)
     }
 
     @Throws(IOException::class)
-    private fun placeBetTicket(item: EventItem, target: VoddsController.TargetPivot, code: (result: Boolean) -> Unit) = launch(coroutineContext) {
-        if((balance - GOLD.toDouble() < 0.001)) return@launch
+    private fun placeBetTicket(item: EventItem, target: VoddsController.TargetPivot, code: (result: Boolean, txt: String) -> Unit) = launch(coroutineContext) {
+        if((balance - settings.getGold() < 0.001)) return@launch
         var rate: Double
         var targetType: String
-
-
-        code(true)
 
         when {
             item.typePivot == "HDP" && target == VoddsController.TargetPivot.OVER -> {
@@ -213,15 +216,16 @@ class ApiClient: CoroutineScope {
                 .add("createdTime", item.createdTime.toString())
                 .build()
         val request1 = Request.Builder()
-                .url("http://biweb-unity-test.olesportsresearch.com/getbetticket")
+                .url("https://biweb-unity.stagingunity.com/getbetticket")
                 .post(body)
                 .build()
         try {
             val response1 = client.newCall(request1).execute()
             val objResponse: BetTicketResponse = mapper.readValue(response1.body()!!.string())
             if (zUn == objResponse.reqId && (Math.round(objResponse.currentOdd!!.toDouble() * 1000.0) / 1000.0) >= rate) {
-                if(objResponse.minStake!! <= GOLD && objResponse.maxStake!!.toDouble() >= GOLD) {
+                if(objResponse.minStake!! <= settings.getGold() && objResponse.maxStake!!.toDouble() >= settings.getGold()) {
                     println("----StartPlace----")
+                    code(true, "")
                     if (settings.getBetPlacing() && settings.getGettingSnapshot()) {
                         val body = FormBody.Builder()
                                 .add("username", "unity_group153")
@@ -233,13 +237,13 @@ class ApiClient: CoroutineScope {
                                 .add("eventid", item.idEvent)
                                 .add("oddid", item.idOdd.toString())
                                 .add("targetodd", rate.toString())
-                                .add("gold", GOLD.toString())
+                                .add("gold", settings.getGold().toString())
                                 .add("acceptbetterodd", "false")
                                 .add("autoStakeAdjustment", "false")
                                 .add("createdTime", item.createdTime.toString())
                                 .build()
                         val request = Request.Builder()
-                                .url("http://biweb-unity-test.olesportsresearch.com/placebet")
+                                .url("https://biweb-unity.stagingunity.com/placebet")
                                 .post(body)
                                 .build()
                         try {
@@ -247,22 +251,24 @@ class ApiClient: CoroutineScope {
                             if (response2.code() == 200) {
                                 val staff2: BetPlaceResponse = mapper.readValue(response2.body()!!.string())
                                 if (staff2.betStatus!! < 2) {
-                                    code(true)
-                                    balance -= GOLD
+                                    //code(true)
+                                    balance -= settings.getGold()
                                 }
 //                                println("BetStatus: " + staff2.betStatus + "\tBalance:" + balance + "\tId:" + staff2.id + "\tTxt:" + staff2.actionMessage)
 //                                val s = response2.body()!!.string()
                             }
                         } catch (e: Exception) {
-                            code(false)
+                            Unit
                         }
                     }
 
                 }
 
+            } else {
+                code(false, response1.body()!!.string())
             }
         } catch (e: Exception) {
-            code(false)
+            Unit
         }
     }
 }

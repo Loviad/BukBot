@@ -10,6 +10,8 @@ import org.springframework.stereotype.Component
 class Settings {
     private var BET_PLACING: Boolean = false                                                                            //делать ставки
     private var GETTING_SNAPSHOT: Boolean = false                                                                       //запрашивать события с VODDS
+    private var GOLD: Double = 25.0
+
 
     private val eventListener = ArrayList<SettingEvents>()
 
@@ -18,6 +20,13 @@ class Settings {
         sendEvents<IBetPlacingListener> {
             it.onChangeBetPlace(value)
         }
+    }
+
+    fun getGold(): Double = GOLD
+    fun getGoldF(): Float = GOLD.toFloat()
+
+    fun setGold(value: Double) {
+        GOLD = value
     }
 
     fun getBetPlacing(): Boolean = BET_PLACING

@@ -11,6 +11,7 @@ import com.example.bukbot.domain.interactors.auth.AuthInterractor
 import com.example.bukbot.domain.interactors.page.PageInterractor
 import com.example.bukbot.domain.interactors.vodds.VoddsInterractor
 import com.example.bukbot.service.events.IGettingSnapshotListener
+import com.example.bukbot.service.events.VoddsFailureBetListener
 import com.example.bukbot.service.events.VoddsPlacingBetListener
 import com.example.bukbot.service.events.VoddsSnapshotListener
 import kotlinx.coroutines.CoroutineScope
@@ -31,12 +32,11 @@ import kotlin.collections.HashMap
 import kotlin.math.abs
 
 
-
-
 @Controller
-class PageController: CoroutineScope,
+class PageController : CoroutineScope,
         VoddsSnapshotListener,
-        VoddsPlacingBetListener {
+        VoddsPlacingBetListener,
+        VoddsFailureBetListener {
 
     override val coroutineContext = backgroundTaskDispatcher
 
@@ -44,7 +44,7 @@ class PageController: CoroutineScope,
     private val emittersData = HashMap<String, SseEmitter>()
     private val nonBlockingService = Executors
             .newCachedThreadPool()
-    private var currentUserLoginned: String =""
+    private var currentUserLoginned: String = ""
 
     @Autowired
     private lateinit var authInterractor: AuthInterractor
@@ -57,7 +57,7 @@ class PageController: CoroutineScope,
     private var uid = abs(UUID.randomUUID().hashCode()).toString()
 
     @PostConstruct
-    fun init(){
+    fun init() {
         voddsInterractor.addEventListener(this)
     }
 
@@ -86,7 +86,7 @@ class PageController: CoroutineScope,
         emitter.onCompletion { emittersAuth.remove(id) }
         emittersAuth[id] = emitter
         uid = abs(UUID.randomUUID().hashCode()).toString()
-        launch{authInterractor.sendAuthRequest()}
+        launch { authInterractor.sendAuthRequest() }
         return emitter
     }
 
@@ -116,8 +116,8 @@ class PageController: CoroutineScope,
 
     @PostMapping(path = ["/command"])
     @ResponseStatus(HttpStatus.OK)
-    fun commandParse(@RequestBody note: String, @RequestParam(required = false) name: String){
-        when(name){
+    fun commandParse(@RequestBody note: String, @RequestParam(required = false) name: String) {
+        when (name) {
             "switchParse" -> switchParse()
         }
     }
@@ -135,6 +135,24 @@ class PageController: CoroutineScope,
                             .name("systemState")
                             .reconnectTime(20_000L)
                             .data(SystemStateMessage(state.first, state.second),
+                                    MediaType.APPLICATION_JSON)
+                    emitter.value.send(k)
+
+                } catch (ioe: IOException) {
+                    emittersData.remove(emitter.key)
+                }
+            }
+        }
+    }
+
+    override fun onFailureBet(txt: String) {
+        emittersData.forEach { emitter ->
+            nonBlockingService.execute {
+                try {
+                    val k = SseEmitter.event()
+                            .name("placeBet")
+                            .reconnectTime(20_000L)
+                            .data(txt,
                                     MediaType.APPLICATION_JSON)
                     emitter.value.send(k)
 
@@ -183,9 +201,9 @@ class PageController: CoroutineScope,
     }
 
     fun sendLogin(messageData: IMessageData) = launch {
-        if (messageData is LoginInfo){
+        if (messageData is LoginInfo) {
             currentUserLoginned = messageData.user
-            emittersAuth[messageData.getpageId()]?.let{
+            emittersAuth[messageData.getpageId()]?.let {
                 nonBlockingService.execute {
                     try {
                         val k = SseEmitter.event()
@@ -196,8 +214,7 @@ class PageController: CoroutineScope,
 
                     } catch (ioe: IOException) {
                         emittersAuth.remove(messageData.getpageId())
-                    }
-                    finally {
+                    } finally {
                         emittersAuth.forEach {
                             it.value.complete()
                         }
@@ -208,7 +225,7 @@ class PageController: CoroutineScope,
         }
     }
 
-    fun sendValuebetsItemsUpdate(list: List<ValueBetsItem>){
+    fun sendValuebetsItemsUpdate(list: List<ValueBetsItem>) {
         emittersData.forEach { emitter ->
             nonBlockingService.execute {
                 try {
@@ -226,7 +243,7 @@ class PageController: CoroutineScope,
         }
     }
 
-    fun sendStatus(status: String){
+    fun sendStatus(status: String) {
         emittersData.forEach { emitter ->
             nonBlockingService.execute {
                 try {
@@ -244,7 +261,7 @@ class PageController: CoroutineScope,
         }
     }
 
-    suspend fun sendSystemState(state: Pair<Boolean, Boolean>){
+    suspend fun sendSystemState(state: Pair<Boolean, Boolean>) {
         emittersData.forEach { emitter ->
             nonBlockingService.execute {
                 try {

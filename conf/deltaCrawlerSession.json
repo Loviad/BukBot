@@ -21,7 +21,7 @@
     "earlyTTL" : 60000,
     "liveStateExpireInterval" : 15000,
     "holderTransferringRate" : 5,
-    "fs3List" : [ {"host":"http://fs3.olesportsresearch.com","port":9000} ],
+    "fs3List" : [ {"host":"https://sf.olesportsresearch.com","port":9000} ],
     "fs3Username" : "unity_group153",
     "fs3Password" : "71Ul4aeCkh",
     "callBackInterval" : 10,

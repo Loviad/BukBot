@@ -3,6 +3,7 @@ package com.example.bukbot.domain.interactors.vodds
 import com.example.bukbot.data.SSEModel.PlacingBet
 import com.example.bukbot.data.database.Dao.PlacedBet
 import com.example.bukbot.service.events.VoddsEvents
+import com.example.bukbot.service.events.VoddsFailureBetListener
 import com.example.bukbot.service.events.VoddsPlacingBetListener
 import com.example.bukbot.service.events.VoddsSnapshotListener
 import com.example.bukbot.service.rest.ApiClient
@@ -48,6 +49,12 @@ class VoddsInterractor {
     fun onPlaceBet(item: PlacingBet) {
         sendEvents<VoddsPlacingBetListener> {
             it.onPlacingBet(item)
+        }
+    }
+
+    fun onFailureBet(txt: String) {
+        sendEvents<VoddsFailureBetListener> {
+            it.onFailureBet(txt)
         }
     }
 }

@@ -14,7 +14,7 @@ class PlacedBetRepository {
     @Autowired
     private lateinit var mongoTemplate: MongoTemplate
 
-    fun findByPin(id: String): PlacedBet? {
+    fun findById(id: String): PlacedBet? {
         return mongoTemplate.findById(
                 id,
                 PlacedBet::class.java

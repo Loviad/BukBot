@@ -73,7 +73,7 @@
                     <h2 style="position: absolute; right: 0px; color: #377bff;">Баланс: {{ balance }} </h2>
                 </b-row>
 
-                <b-row cla>
+                <b-row >
                     <div class="col shadow-sm p-3 mt-5 mr-5 mb-5 bg-light rounded">
                         <div class="row p-3 mb-2 ml-2 mr-2">
                             <div class="col p-1">Дом</div>
@@ -101,6 +101,12 @@
                         3 из 3
                     </div>
                 </b-row>
+
+                <b-row class="shadow-sm p-3 bg-light rounded">
+
+                </b-row>
+
+
             </div>
         </div>
     </div>
@@ -133,7 +139,8 @@
                class: /*[[${stateBetting}]]*/,
                spinVisible: false
             },
-            bets: [ ]
+            bets: [ ],
+            failure: [ ]
         },
         created() {
             this.setupStream();
@@ -156,9 +163,18 @@
                     this.parsStateValue.class = data.balance;
                 }, false);
 
+                es.addEventListener('failure', event => {
+                console.log(event.data);
+                    if(this.colCountFailure < 10){
+                        this.failure.push(event.data);
+                    } else {
+                        this.failure.pop();
+                        this.failure.unshift(event.data);
+                    }
+                }, false);
+
                 es.addEventListener('placeBet', event => {
                     let data = JSON.parse(event.data);
-                    console.log(data);
                     if(this.colCount < 10){
                         this.bets.push(data);
                      } else {
@@ -208,6 +224,9 @@
             },
             colCount: function(){
                 return Object.keys(this.bets).length;
+            },
+            colCountFailure: function(){
+                return Object.keys(this.failure).length;
             }
         }
     });

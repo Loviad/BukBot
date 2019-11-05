@@ -3,7 +3,9 @@ package com.example.bukbot.controller.vodds
 import com.example.bukbot.data.ItemModel
 import com.example.bukbot.data.SSEModel.PlacingBet
 import com.example.bukbot.data.database.Dao.EventItem
+import com.example.bukbot.data.database.Dao.PlacedBet
 import com.example.bukbot.data.repositories.EventItemRepository
+import com.example.bukbot.data.repositories.PlacedBetRepository
 import com.example.bukbot.domain.interactors.vodds.VoddsInterractor
 import com.example.bukbot.service.events.IGettingSnapshotListener
 import com.example.bukbot.service.rest.ApiClient
@@ -32,6 +34,8 @@ class VoddsController : CoroutineScope, IGettingSnapshotListener {
     private lateinit var settings: Settings
     @Autowired
     private lateinit var voddsInterractor: VoddsInterractor
+    @Autowired
+    private lateinit var plBetRep: PlacedBetRepository
 
     override val coroutineContext = //backgroundTaskDispatcher
             Executors.newSingleThreadExecutor(
@@ -191,11 +195,18 @@ class VoddsController : CoroutineScope, IGettingSnapshotListener {
 
                         }
                         lastItemHDP?.let {
-                            api.checkAndPlaceBetTicket(it.item, it.type) { result ->
-                                if(result) voddsInterractor.onPlaceBet(PlacingBet(
-                                        e.host, e.guest, it.item.source, it.ratePin, it.rateVal, it.item.typePivot, it.item.pivotValue
-                                ))
-                            }
+                            if(plBetRep.findById("${e.eventId}_${it.item.idOdd}") == null) {
+                                api.checkAndPlaceBetTicket(it.item, it.type) { result, txt ->
+                                    if (result) {
+                                        voddsInterractor.onPlaceBet(PlacingBet(
+                                                e.host, e.guest, it.item.source, it.ratePin, it.rateVal, it.item.typePivot, it.item.pivotValue
+                                        ))
+                                        plBetRep.saveBet(PlacedBet("${e.eventId}_${it.item.idOdd}", e.eventId, it.item.idOdd))
+                                    } else {
+                                        voddsInterractor.onFailureBet(txt)
+                                    }
+                                }
+                            } else {println("-----Double-----")}
 
                             println("rateUnder id -" + it.item.idOdd + " timeType -" + it.item.timeType + " pivotBias -" + it.item.pivotBias + " typePivot -" + it.item.typePivot + " typeValue -" + it.item.pivotValue)
                             println("PIN88 \t-\t " + it.item.source)
@@ -204,11 +215,18 @@ class VoddsController : CoroutineScope, IGettingSnapshotListener {
 
                         }
                         lastItemTOTAL?.let {
-                            api.checkAndPlaceBetTicket(it.item, it.type){ result ->
-                                if(result) voddsInterractor.onPlaceBet(PlacingBet(
-                                        e.host, e.guest, it.item.source, it.ratePin, it.rateVal, it.item.typePivot, it.item.pivotValue
-                                ))
-                            }
+                            if(plBetRep.findById("${e.eventId}_${it.item.idOdd}") == null) {
+                                api.checkAndPlaceBetTicket(it.item, it.type) { result, txt ->
+                                    if (result) {
+                                        voddsInterractor.onPlaceBet(PlacingBet(
+                                                e.host, e.guest, it.item.source, it.ratePin, it.rateVal, it.item.typePivot, it.item.pivotValue
+                                        ))
+                                        plBetRep.saveBet(PlacedBet("${e.eventId}_${it.item.idOdd}", e.eventId, it.item.idOdd))
+                                    } else {
+                                        voddsInterractor.onFailureBet(txt)
+                                    }
+                                }
+                            } else {println("-----Double-----")}
                             println("rateUnder id -" + it.item.idOdd + " timeType -" + it.item.timeType + " pivotBias -" + it.item.pivotBias + " typePivot -" + it.item.typePivot + " typeValue -" + it.item.pivotValue)
                             println("PIN88 \t-\t " + it.item.source)
                             println("" + it.ratePin + "\t-\t" + it.rateVal)
