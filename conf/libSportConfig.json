@@ -1,0 +1,14 @@
+{
+  "username":"unity_group153",
+  "password":"71Ul4aeCkh",
+  "uri":"https://sf.stagingunity.com",
+  "bookFilter":["PIN88", "SBO", "ISN", "IBC", "CROWN"],
+  "oddTypeFilter": ["TODAY"],
+  "sportFilter": ["SOCCER"],
+  "ttlConfig": {
+    "livettl": "5000",
+    "todayttl": "15000",
+    "earlyttl": "30000",
+    "enableTtl": true
+  }
+}

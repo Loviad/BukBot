@@ -89,7 +89,7 @@ class TelegramBot(
         try{
         val user = telegramInterractor.findByChatId(message.chatId.toString())
         authInterractor.sendLogin(LoginInfo(user.chatId, user.password, message.text.removeRange(range)))}
-        catch (e: EmptyResultDataAccessException){
+        catch (e: Exception){
             //TODO : зафиксировать попытку левого входа
         }
     }

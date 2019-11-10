@@ -1,9 +1,6 @@
 package com.example.bukbot.controller.vodds
 
-import com.example.bukbot.data.ItemModel
-import com.example.bukbot.data.SSEModel.PlacingBet
-import com.example.bukbot.data.database.Dao.EventItem
-import com.example.bukbot.data.database.Dao.PlacedBet
+import com.example.bukbot.data.database.Dao.BetItemValue
 import com.example.bukbot.data.repositories.EventItemRepository
 import com.example.bukbot.data.repositories.PlacedBetRepository
 import com.example.bukbot.domain.interactors.vodds.VoddsInterractor
@@ -12,6 +9,13 @@ import com.example.bukbot.service.rest.ApiClient
 import com.example.bukbot.utils.Settings
 import com.example.bukbot.utils.threadfabrick.ApiThreadFactory
 import com.example.bukbot.utils.threadfabrick.VoddsThreadFactory
+import jayeson.lib.feed.api.IBetEvent
+import jayeson.lib.feed.api.IBetMatch
+import jayeson.lib.feed.api.IBetRecord
+import jayeson.lib.feed.api.twoside.IB2Match
+import jayeson.lib.feed.api.twoside.IB2Record
+import jayeson.lib.feed.api.twoside.PivotType
+import jayeson.lib.sports.client.SportsFeedFactory
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.launch
@@ -20,7 +24,6 @@ import org.springframework.stereotype.Component
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import javax.annotation.PostConstruct
-import javax.annotation.PreDestroy
 
 @Component
 class VoddsController : CoroutineScope, IGettingSnapshotListener {
@@ -37,6 +40,8 @@ class VoddsController : CoroutineScope, IGettingSnapshotListener {
     @Autowired
     private lateinit var plBetRep: PlacedBetRepository
 
+    val valueList = HashMap<String, BetItemValue>()
+
     override val coroutineContext = //backgroundTaskDispatcher
             Executors.newSingleThreadExecutor(
                     VoddsThreadFactory()
@@ -48,207 +53,251 @@ class VoddsController : CoroutineScope, IGettingSnapshotListener {
 
     //val systemProps = System.getProperties()
     init {
-        System.setProperty("deltaCrawlerSessionConfigurationFile", "conf/deltaCrawlerSession.json");
-        //systemProps["deltaCrawlerSessionConfigurationFile"] = "deltaCrawlerSession.json"
     }
 
-    lateinit var cs: DelCrawlerSession
 
     private var PARSING_STATE: Boolean = false
 
     @PostConstruct
-    fun init(){
+    fun init() {
         settings.addSettingsEventListener(this)
+        start()
     }
 
     override fun onGettingSnapshotChange(newValue: Boolean) {
-        if(newValue)
+        if (newValue)
             start()
     }
 
 
     fun start() = launch {
+
         if (!settings.getGettingSnapshot()) return@launch
-        //systemProps.put("deltaCrawlerSessionConfigurationFile", "/home/sergey/projects/BukBot/conf/deltaCrawlerSession.json")
+        val factory = SportsFeedFactory()
 
-        cs = DelCrawlerSession()
-        cs.subscriberRestartInterval = 0
+        /* Create SportsFeedClient using default config file (located in conf folder - libSportsConfig.json) */
+        val client = factory.createFromConfigFile("/home/sergey/projects/BukBot/conf/libSportConfig.json")
 
-        cs.connect()
-        cs.waitConnection()
+        /* A single client supports multiple views.
+       Views also determine the shape of records that will be retrieved.
+       Below are IBetMatch view created with no filters applied. */
+        val noFilterIBetMatchFeedView = client.view(IBetMatch::class.java)
 
-            api.getCredit()
-            voddsInterractor.startParsing()
-            while (settings.getGettingSnapshot()) {
-                cs.waitConnection()
-                val events = cs.allEvents
-                var emptyListFlag: Boolean = events.size > 0
+        /* You can now retrieve data from the newly created view. You can choose to process this data by polling the view or by attaching an event handler. */
+        /* Process events by attaching an event handler */
+//        val myHandler = PushModeHandler("noFilter")
+//        noFilterIBetMatchFeedView.register(myHandler)
 
-                for (e in events) {
-                    mongo.clearEvents()
-                    val rs = e.getRecords()
+        /* Start the client */
+        client.start()
 
+        /* Read data by polling the view from a feed view, basically it is to repeatedly poll for the latest snapshot */
+        api.getBalance()
+        voddsInterractor.startParsing()
+        while (settings.getGettingSnapshot()) {
+            /* You can update 'IB2Match' to 'SoccerMatch' or 'TennisMatch' or etc. according to the type of FeedView you initialized */
+            val limit = 3
+            val snapshot = noFilterIBetMatchFeedView.snapshot()
+            val matches = snapshot.matches()
+            print("There are currently " + matches.size + " matches.\n")
+            printMatches<IBetMatch>(matches)
 
+            TimeUnit.SECONDS.sleep(10L)
+        }
+        voddsInterractor.stopParsing()
 
-                    if (rs.isEmpty()) continue
-//                    val state = e.getLiveState()
+    }
 
-//                    println("id:" + e.eventId + "\tHost:" + e.host + "\tGuest:" + e.guest + "\tLeague:" + e.league)
-                    for (r in rs) {
-                        val item: EventItem = EventItem(
-                                e.eventId,
-                                r.oddId,
-                                r.source,
-                                r.timeType.name,
-                                r.pivotType.name,
-                                r.pivotBias.name,
-                                r.pivotValue.toDouble(),
-                                Math.round(r.rateOver.toDouble() * 1000.0) / 1000.0,
-                                Math.round(r.rateUnder.toDouble() * 1000.0) / 1000.0,
-                                Math.round(r.rateEqual.toDouble() * 1000.0) / 1000.0,
-                                r.createdTime,
-                                r.oddType.name
-                        )
-                        if (item.typePivot != "ONE_TWO") {
-                            mongo.saveItem(item)
-//                            println("(id:" + r.oddId + " Source:" + r.source + " TypeOdd:" + r.oddType + " TimeType:" + r.timeType + " TypePivot:" + r.pivotType + " PivotBias:" + r.pivotBias + " PivotValue:" + r.pivotValue + " RateOver:" +
-//                                    r.rateOver + " RateUnder:" +
-//                                    r.rateUnder + " RateEqual:" +
-//                                    r.rateEqual + ")")
+    fun <M : IBetMatch> printMatches(matches: Collection<M>, limit: Int) {
+        val it = matches.iterator()
+        var i = 0
+
+        var total: Pair<Double, BetItemValue>?
+        var hdp: Pair<Double, BetItemValue>?
+        while (settings.getGettingSnapshot() && i < limit && it.hasNext()) {
+            val match = it.next()
+            valueList.clear()
+            println("-------------------------")
+            println(match.sportType().toString() + ":" + match.league() + ":" + (match as IB2Match).participantOne() + ":" + (match as IB2Match).participantTwo())
+            printEvents(match.events())
+            total = null
+            hdp = null
+            valueList.forEach { item ->
+                val kef = ((item.value.value/item.value.pinValue)*100)- 100
+                if(item.value.source != "PIN88" && item.value.value > 0.45  && kef > 2) {
+                    when (item.value.pivotType) {
+                        "TOTAL" -> {
+                            total?.let {
+                                if (it.first <= kef) {
+                                    total = kef to item.value
+                                }
+                            } ?: run {
+                                total = kef to item.value
+                            }
+                        }
+                        "HDP" -> {
+                            hdp?.let {
+                                if (it.first <= kef) {
+                                    hdp = kef to item.value
+                                }
+                            } ?: run {
+                                hdp = kef to item.value
+                            }
                         }
                     }
-//                    println("\n")
+                }
+//                with(item.value) {
+//                    if(this.source != "PIN88" && this.pivotValue > 0.45  && (((this.pivotValue/this.pinValue)*100)- 100 ) > 2) {
+//                        print("${this.source}:${this.type}:${this.pivotBias}:${this.pivotType}:${this.pivotValue}:${this.value}:${this.pinValue}\n")
+//                    }
+//                }
+            }
+            total?.let {
+                print("${it.first}\t${it.second.source}:${it.second.type}:${it.second.pivotBias}:${it.second.pivotType}:${it.second.pivotValue}:${it.second.value}:${it.second.pinValue}\n")
+                api.checkAndPlaceBetTicket(it.second) { result, txt ->
+                    println(result)
+                    println(txt)
+//                    if (result) {
+//                        voddsInterractor.onPlaceBet(PlacingBet(
+//                                e.host, e.guest, it.item.source, it.ratePin, it.rateVal, it.item.typePivot, it.item.pivotValue
+//                        ))
+//                        plBetRep.saveBet(PlacedBet("${e.eventId}_${it.item.idOdd}", e.eventId, it.item.idOdd))
+//                    } else {
+//                        voddsInterractor.onFailureBet(txt)
+//                    }
+                }
+            }
+            hdp?.let {
+                print("${it.first}\t${it.second.source}:${it.second.type}:${it.second.pivotBias}:${it.second.pivotType}:${it.second.pivotValue}:${it.second.value}:${it.second.pinValue}\n")
+                api.checkAndPlaceBetTicket(it.second) { result, txt ->
+                    println(result)
+                    println(txt)
+//                    if (result) {
+//                        voddsInterractor.onPlaceBet(PlacingBet(
+//                                e.host, e.guest, it.item.source, it.ratePin, it.rateVal, it.item.typePivot, it.item.pivotValue
+//                        ))
+//                        plBetRep.saveBet(PlacedBet("${e.eventId}_${it.item.idOdd}", e.eventId, it.item.idOdd))
+//                    } else {
+//                        voddsInterractor.onFailureBet(txt)
+//                    }
+                }
+            }
+            i++
+        }
+    }
 
-                    if (emptyListFlag && settings.getGettingSnapshot()) {
-                        val listPin = mongo.findByPin()
-                        var lastItemHDP: ItemModel? = null
-                        var lastItemTOTAL: ItemModel? = null
-                        listPin.forEach { pinItem ->
-                            val value = mongo.findForCheckValue(pinItem.idEvent, pinItem.idOdd)
+    fun <E : IBetEvent> printEvents(events: Collection<E>, limit: Int) {
+        val it = events.iterator()
+        var i = 0
+        while (settings.getGettingSnapshot() && i < limit && it.hasNext()) {
+            val event = it.next()
+            printRecords(event.records())
+            i++
+        }
+    }
 
-                            value.forEach { valueItem ->
-
-                                if (pinItem.timeType == valueItem.timeType &&
-                                        pinItem.typePivot == valueItem.typePivot &&
-                                        pinItem.pivotBias == valueItem.pivotBias &&
-                                        pinItem.pivotValue == valueItem.pivotValue) {
-
-                                    when (pinItem.typePivot) {
-                                        "HDP" -> {
-                                            val kefOver: Double = try {
-                                                ((valueItem.rateOver / pinItem.rateOver) * 100) - 100
-                                            } catch (e: Exception) {
-                                                -1000.0
-                                            }
-                                            val kefUnder: Double = try {
-                                                ((valueItem.rateUnder / pinItem.rateUnder) * 100) - 100
-                                            } catch (e: Exception) {
-                                                -1000.0
-                                            }
-
-                                            if(kefOver > 2 && valueItem.rateOver > 0.45){
-                                                if(lastItemHDP != null) {
-                                                    if (lastItemHDP!!.kef < kefOver) lastItemHDP = ItemModel(pinItem.rateOver, valueItem.rateOver, kefOver, TargetPivot.OVER, valueItem)
-                                                } else {
-                                                    lastItemHDP = ItemModel(pinItem.rateOver, valueItem.rateOver, kefOver, TargetPivot.OVER, valueItem)
-                                                }
-                                            }
-                                            if(kefUnder > 2 && valueItem.rateUnder > 0.45){
-                                                if(lastItemHDP != null) {
-                                                    if (lastItemHDP!!.kef < kefUnder) lastItemHDP = ItemModel(pinItem.rateUnder, valueItem.rateUnder, kefUnder, TargetPivot.UNDER, valueItem)
-                                                } else {
-                                                    lastItemHDP = ItemModel(pinItem.rateUnder, valueItem.rateUnder, kefUnder, TargetPivot.UNDER, valueItem)
-                                                }
-                                            }
-                                        }
-                                        "TOTAL" ->{
-                                            val kefOver: Double = try {
-                                                ((valueItem.rateOver / pinItem.rateOver) * 100) - 100
-                                            } catch (e: Exception) {
-                                                -1000.0
-                                            }
-                                            val kefUnder: Double = try {
-                                                ((valueItem.rateUnder / pinItem.rateUnder) * 100) - 100
-                                            } catch (e: Exception) {
-                                                -1000.0
-                                            }
-
-                                            if(kefOver > 2 && valueItem.rateOver > 0.45){
-                                                if(lastItemTOTAL != null) {
-                                                    if (lastItemTOTAL!!.kef < kefOver) lastItemTOTAL = ItemModel(pinItem.rateOver, valueItem.rateOver, kefOver, TargetPivot.OVER, valueItem)
-                                                } else {
-                                                    lastItemTOTAL = ItemModel(pinItem.rateOver, valueItem.rateOver, kefOver, TargetPivot.OVER, valueItem)
-                                                }
-                                            }
-                                            if(kefUnder > 2 && valueItem.rateUnder > 0.45){
-                                                if(lastItemTOTAL != null) {
-                                                    if (lastItemTOTAL!!.kef < kefUnder) lastItemTOTAL = ItemModel(pinItem.rateUnder, valueItem.rateUnder, kefUnder, TargetPivot.UNDER, valueItem)
-                                                } else {
-                                                    lastItemTOTAL = ItemModel(pinItem.rateUnder, valueItem.rateUnder, kefUnder, TargetPivot.UNDER, valueItem)
-                                                }
-                                            }
-                                        }
-                                    }
-
-                                }
+    fun <R : IBetRecord> printRecords(records: Collection<R>, limit: Int) {
+        val it = records.iterator()
+        while (it.hasNext()) {
+            val record = it.next() as IB2Record
+//            println(record.source() + ":" + record.pivotType() + ":" + record.pivotValue() + ":" + record.pivotBias() + ":" + record.oddType() + ":" + record.rateOver() + ":" + record.rateUnder() + ":" + record.rateEqual())
+            if(record.pivotType() != PivotType.ONE_TWO) {
+//                print("\n${record.source()}_${record.matchId()}_${record.eventId()}_${record.id()}\t${record.pivotType()}_${record.pivotValue()}_${record.pivotBias()}_${TargetPivot.OVER.name}_${record.timeType()}")
+                when (record.source()) {
+                    "PIN88" -> {
+                        valueList["${record.pivotType()}_${record.pivotValue()}_${record.pivotBias()}_${TargetPivot.OVER.name}_${record.timeType()}"]?.let {
+                            it.pinValue = Math.round(record.rateOver().toDouble() * 1000.0) / 1000.0
+                        } ?: run {
+                            valueList["${record.pivotType()}_${record.pivotValue()}_${record.pivotBias()}_${TargetPivot.OVER.name}_${record.timeType()}"] =
+                                    BetItemValue(
+                                            record.source(),
+                                            record.pivotType().name,
+                                            record.pivotValue().toDouble(),
+                                            record.pivotBias().name,
+                                            TargetPivot.OVER,
+                                            Math.round(record.rateOver().toDouble() * 1000.0) / 1000.0,
+                                            Math.round(record.rateOver().toDouble() * 1000.0) / 1000.0,
+                                            record.matchId(),
+                                            record.eventId(),
+                                            record.id()
+                                    )
+                        }
+                        valueList["${record.pivotType()}_${record.pivotValue()}_${record.pivotBias()}_${TargetPivot.UNDER.name}_${record.timeType()}"]?.let {
+                            it.pinValue = Math.round(record.rateUnder().toDouble() * 1000.0) / 1000.0
+                        } ?: run {
+                            valueList["${record.pivotType()}_${record.pivotValue()}_${record.pivotBias()}_${TargetPivot.UNDER.name}_${record.timeType()}"] =
+                                    BetItemValue(
+                                            record.source(),
+                                            record.pivotType().name,
+                                            record.pivotValue().toDouble(),
+                                            record.pivotBias().name,
+                                            TargetPivot.UNDER,
+                                            Math.round(record.rateUnder().toDouble() * 1000.0) / 1000.0,
+                                            Math.round(record.rateUnder().toDouble() * 1000.0) / 1000.0,
+                                            record.matchId(),
+                                            record.eventId(),
+                                            record.id()
+                                    )
+                        }
+                    }
+                    else -> {
+                        valueList["${record.pivotType()}_${record.pivotValue()}_${record.pivotBias()}_${TargetPivot.OVER.name}_${record.timeType()}"]?.let {
+                            if (it.value < (Math.round(record.rateOver().toDouble() * 1000.0) / 1000.0)) {
+                                it.value = Math.round(record.rateOver().toDouble() * 1000.0) / 1000.0
+                                it.source = record.source()
                             }
-
+                        } ?: run {
+                            valueList["${record.pivotType()}_${record.pivotValue()}_${record.pivotBias()}_${TargetPivot.OVER.name}_${record.timeType()}"] =
+                                    BetItemValue(
+                                            record.source(),
+                                            record.pivotType().name,
+                                            record.pivotValue().toDouble(),
+                                            record.pivotBias().name,
+                                            TargetPivot.OVER,
+                                            Math.round(record.rateOver().toDouble() * 1000.0) / 1000.0,
+                                            matchId = record.matchId(),
+                                            eventId = record.eventId(),
+                                            recordId = record.id()
+                                    )
                         }
-                        lastItemHDP?.let {
-                            if(plBetRep.findById("${e.eventId}_${it.item.idOdd}") == null) {
-                                api.checkAndPlaceBetTicket(it.item, it.type) { result, txt ->
-                                    if (result) {
-                                        voddsInterractor.onPlaceBet(PlacingBet(
-                                                e.host, e.guest, it.item.source, it.ratePin, it.rateVal, it.item.typePivot, it.item.pivotValue
-                                        ))
-                                        plBetRep.saveBet(PlacedBet("${e.eventId}_${it.item.idOdd}", e.eventId, it.item.idOdd))
-                                    } else {
-                                        voddsInterractor.onFailureBet(txt)
-                                    }
-                                }
-                            } else {println("-----Double-----")}
-
-                            println("rateUnder id -" + it.item.idOdd + " timeType -" + it.item.timeType + " pivotBias -" + it.item.pivotBias + " typePivot -" + it.item.typePivot + " typeValue -" + it.item.pivotValue)
-                            println("PIN88 \t-\t " + it.item.source)
-                            println("" + it.ratePin + "\t-\t" + it.rateVal)
-                            print("\n")
-
+                        valueList["${record.pivotType()}_${record.pivotValue()}_${record.pivotBias()}_${TargetPivot.UNDER.name}_${record.timeType()}"]?.let {
+                            if (it.value < (Math.round(record.rateUnder().toDouble() * 1000.0) / 1000.0)) {
+                                it.value = Math.round(record.rateUnder().toDouble() * 1000.0) / 1000.0
+                                it.source = record.source()
+                            }
+                        } ?: run {
+                            valueList["${record.pivotType()}_${record.pivotValue()}_${record.pivotBias()}_${TargetPivot.UNDER.name}_${record.timeType()}"] =
+                                    BetItemValue(
+                                            record.source(),
+                                            record.pivotType().name,
+                                            record.pivotValue().toDouble(),
+                                            record.pivotBias().name,
+                                            TargetPivot.UNDER,
+                                            Math.round(record.rateUnder().toDouble() * 1000.0) / 1000.0,
+                                            matchId = record.matchId(),
+                                            eventId = record.eventId(),
+                                            recordId = record.id()
+                                    )
                         }
-                        lastItemTOTAL?.let {
-                            if(plBetRep.findById("${e.eventId}_${it.item.idOdd}") == null) {
-                                api.checkAndPlaceBetTicket(it.item, it.type) { result, txt ->
-                                    if (result) {
-                                        voddsInterractor.onPlaceBet(PlacingBet(
-                                                e.host, e.guest, it.item.source, it.ratePin, it.rateVal, it.item.typePivot, it.item.pivotValue
-                                        ))
-                                        plBetRep.saveBet(PlacedBet("${e.eventId}_${it.item.idOdd}", e.eventId, it.item.idOdd))
-                                    } else {
-                                        voddsInterractor.onFailureBet(txt)
-                                    }
-                                }
-                            } else {println("-----Double-----")}
-                            println("rateUnder id -" + it.item.idOdd + " timeType -" + it.item.timeType + " pivotBias -" + it.item.pivotBias + " typePivot -" + it.item.typePivot + " typeValue -" + it.item.pivotValue)
-                            println("PIN88 \t-\t " + it.item.source)
-                            println("" + it.ratePin + "\t-\t" + it.rateVal)
-                            print("\n")
-                        }
-
-
                     }
 
                 }
-                TimeUnit.SECONDS.sleep(10L)
             }
-        PARSING_STATE = false
-        cs.disconnect()
-        voddsInterractor.stopParsing()
-       /** val dft = DeltaFeedTracker()
-        cs.addDeltaEventHandler(dft) **/
+        }
+
     }
 
-    @PreDestroy
-    fun exit() {
-        cs.disconnect()
+
+    fun <M : IBetMatch> printMatches(matches: Collection<M>) {
+        printMatches(matches, matches.size)
+    }
+
+    fun <E : IBetEvent> printEvents(events: Collection<E>) {
+        printEvents(events, events.size)
+    }
+
+    fun <R : IBetRecord> printRecords(records: Collection<R>) {
+        printRecords(records, records.size)
     }
 
     enum class TargetPivot {

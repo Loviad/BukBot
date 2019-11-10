@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+  <appender name="APPLICATION" class="ch.qos.logback.core.rolling.RollingFileAppender">
+    <file>./logs/application.log</file>
+    <encoder>
+      <pattern>%date - [%level] - %logger{2} - %message%xException%n</pattern>
+    </encoder>
+    <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+      <fileNamePattern>./logs/application.%d{yyyy-MM-dd}.log.zip</fileNamePattern>
+      <maxHistory>30</maxHistory>
+    </rollingPolicy>
+  </appender>
+
+  <appender name="Delivery" class="ch.qos.logback.core.rolling.RollingFileAppender">
+    <file>logs/delivery.log</file>
+    <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+      <!-- daily rollover -->
+      <fileNamePattern>logs/delivery.%d{yyyy-MM-dd}.log.zip</fileNamePattern>
+      <maxHistory>14</maxHistory>
+    </rollingPolicy>
+    <encoder>
+      <pattern>%date-[%-5level] [%thread] [%logger{35}] - %msg %n</pattern>
+    </encoder>
+  </appender>
+
+  <appender name="Sports" class="ch.qos.logback.core.rolling.RollingFileAppender">
+    <file>./logs/sports.log</file>
+    <encoder>
+      <pattern>%date - [%level] - %logger{2} - %message%xException%n</pattern>
+    </encoder>
+    <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+      <fileNamePattern>./logs/sports.%d{yyyy-MM-dd}.log.zip</fileNamePattern>
+      <maxHistory>30</maxHistory>
+    </rollingPolicy>
+  </appender>
+  
+  <appender name="PushModeHandler" class="ch.qos.logback.core.rolling.RollingFileAppender">
+    <file>./logs/PushModeHandler.log</file>
+    <encoder>
+      <pattern>%date - [%level] - %logger{2} - %message%xException%n</pattern>
+    </encoder>
+    <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+      <fileNamePattern>./logs/PushModeHandler.%d{yyyy-MM-dd}.log.zip</fileNamePattern>
+      <maxHistory>30</maxHistory>
+    </rollingPolicy>
+  </appender>
+
+  <logger name="jayeson.lib.sports" level="ERROR" additivity="false">
+    <appender-ref ref="Sports" />
+  </logger>
+  <logger name="jayeson.lib.delivery" level="ERROR" additivity="false">
+    <appender-ref ref="Delivery" />
+  </logger>
+  <logger name="deltafeedapp.pushmodehandlers.PushModeHandler" level="INFO" additivity="false">
+    <appender-ref ref="PushModeHandler" />
+  </logger>
+ 
+  <logger name="io.netty" level="WARN" additivity="false" />
+  <logger name="org.asynchttpclient" level="WARN" additivity="false" />
+  <root level="ERROR">
+    <appender-ref ref="APPLICATION" />
+  </root>
+</configuration>
