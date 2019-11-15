@@ -123,28 +123,32 @@ class VoddsController : CoroutineScope, IGettingSnapshotListener {
             total = null
             hdp = null
             valueList.forEach { item ->
-                val kef = ((item.value.value/item.value.pinValue)*100)- 100
-                if(item.value.source != "PIN88" && item.value.value > 0.45  && kef > 2) {
-                    when (item.value.pivotType) {
-                        "TOTAL" -> {
-                            total?.let {
-                                if (it.first <= kef) {
+                try {
+                    val kef = ((item.value.value / item.value.pinValue) * 100) - 100
+                    if (item.value.source != "PIN88" && item.value.value > 0.45 && kef > 2) {
+                        when (item.value.pivotType) {
+                            "TOTAL" -> {
+                                total?.let {
+                                    if (it.first <= kef) {
+                                        total = kef to item.value
+                                    }
+                                } ?: run {
                                     total = kef to item.value
                                 }
-                            } ?: run {
-                                total = kef to item.value
                             }
-                        }
-                        "HDP" -> {
-                            hdp?.let {
-                                if (it.first <= kef) {
+                            "HDP" -> {
+                                hdp?.let {
+                                    if (it.first <= kef) {
+                                        hdp = kef to item.value
+                                    }
+                                } ?: run {
                                     hdp = kef to item.value
                                 }
-                            } ?: run {
-                                hdp = kef to item.value
                             }
                         }
                     }
+                } catch (e:Exception){
+                    Unit
                 }
 //                with(item.value) {
 //                    if(this.source != "PIN88" && this.pivotValue > 0.45  && (((this.pivotValue/this.pinValue)*100)- 100 ) > 2) {
