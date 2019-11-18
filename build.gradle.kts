@@ -34,7 +34,7 @@ dependencies {
 	implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.9.9")
 	implementation("com.squareup.okhttp3:okhttp:3.14.2")
 	implementation("org.jetbrains.kotlinx:kotlinx-coroutines-reactor")
-	implementation(fileTree("/home/sergey/projects/BukBot/libs"))
+	implementation(fileTree("$rootDir/libs"))
 	testImplementation("org.springframework.boot:spring-boot-starter-test") {
 		exclude(group = "org.junit.vintage", module = "junit-vintage-engine")
 	}

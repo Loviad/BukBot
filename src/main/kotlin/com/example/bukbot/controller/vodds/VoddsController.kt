@@ -25,6 +25,8 @@ import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import javax.annotation.PostConstruct
 
+
+
 @Component
 class VoddsController : CoroutineScope, IGettingSnapshotListener {
 
@@ -76,7 +78,9 @@ class VoddsController : CoroutineScope, IGettingSnapshotListener {
         val factory = SportsFeedFactory()
 
         /* Create SportsFeedClient using default config file (located in conf folder - libSportsConfig.json) */
-        val client = factory.createFromConfigFile("/home/sergey/projects/BukBot/conf/libSportConfig.json")
+        val path = System.getProperty("user.dir")
+        val client = factory.createFromConfigFile("$path\\conf\\libSportConfig.json")
+//        val client = factory.create()
 
         /* A single client supports multiple views.
        Views also determine the shape of records that will be retrieved.
@@ -99,7 +103,7 @@ class VoddsController : CoroutineScope, IGettingSnapshotListener {
             val limit = 3
             val snapshot = noFilterIBetMatchFeedView.snapshot()
             val matches = snapshot.matches()
-            print("There are currently " + matches.size + " matches.\n")
+//            print("There are currently " + matches.size + " matches.\n")
             printMatches<IBetMatch>(matches)
 
             TimeUnit.SECONDS.sleep(10L)
@@ -117,14 +121,14 @@ class VoddsController : CoroutineScope, IGettingSnapshotListener {
         while (settings.getGettingSnapshot() && i < limit && it.hasNext()) {
             val match = it.next()
             valueList.clear()
-            println("-------------------------")
-            println(match.sportType().toString() + ":" + match.league() + ":" + (match as IB2Match).participantOne() + ":" + (match as IB2Match).participantTwo())
+//            println("-------------------------")
+//            println(match.sportType().toString() + ":" + match.league() + ":" + (match as IB2Match).participantOne() + ":" + (match as IB2Match).participantTwo())
             printEvents(match.events())
             total = null
             hdp = null
             valueList.forEach { item ->
                 val kef = ((item.value.value/item.value.pinValue)*100)- 100
-                if(item.value.source != "PIN88" && item.value.value > 0.45  && kef > 2) {
+                if(item.value.source != "PIN88" && item.value.value > 0.45  && kef > 2 && item.value.pinValue > 0) {
                     when (item.value.pivotType) {
                         "TOTAL" -> {
                             total?.let {
@@ -153,7 +157,7 @@ class VoddsController : CoroutineScope, IGettingSnapshotListener {
 //                }
             }
             total?.let {
-                print("${it.first}\t${it.second.source}:${it.second.type}:${it.second.pivotBias}:${it.second.pivotType}:${it.second.pivotValue}:${it.second.value}:${it.second.pinValue}\n")
+//                print("${it.first}\t${it.second.source}:${it.second.type}:${it.second.pivotBias}:${it.second.pivotType}:${it.second.pivotValue}:${it.second.value}:${it.second.pinValue}\n")
                 api.checkAndPlaceBetTicket(it.second) { result, txt ->
                     println(result)
                     println(txt)
@@ -168,7 +172,7 @@ class VoddsController : CoroutineScope, IGettingSnapshotListener {
                 }
             }
             hdp?.let {
-                print("${it.first}\t${it.second.source}:${it.second.type}:${it.second.pivotBias}:${it.second.pivotType}:${it.second.pivotValue}:${it.second.value}:${it.second.pinValue}\n")
+//                print("${it.first}\t${it.second.source}:${it.second.type}:${it.second.pivotBias}:${it.second.pivotType}:${it.second.pivotValue}:${it.second.value}:${it.second.pinValue}\n")
                 api.checkAndPlaceBetTicket(it.second) { result, txt ->
                     println(result)
                     println(txt)
@@ -245,6 +249,7 @@ class VoddsController : CoroutineScope, IGettingSnapshotListener {
                             if (it.value < (Math.round(record.rateOver().toDouble() * 1000.0) / 1000.0)) {
                                 it.value = Math.round(record.rateOver().toDouble() * 1000.0) / 1000.0
                                 it.source = record.source()
+                                it.record = record
                             }
                         } ?: run {
                             valueList["${record.pivotType()}_${record.pivotValue()}_${record.pivotBias()}_${TargetPivot.OVER.name}_${record.timeType()}"] =
@@ -257,13 +262,15 @@ class VoddsController : CoroutineScope, IGettingSnapshotListener {
                                             Math.round(record.rateOver().toDouble() * 1000.0) / 1000.0,
                                             matchId = record.matchId(),
                                             eventId = record.eventId(),
-                                            recordId = record.id()
+                                            recordId = record.id(),
+                                            record = record
                                     )
                         }
                         valueList["${record.pivotType()}_${record.pivotValue()}_${record.pivotBias()}_${TargetPivot.UNDER.name}_${record.timeType()}"]?.let {
                             if (it.value < (Math.round(record.rateUnder().toDouble() * 1000.0) / 1000.0)) {
                                 it.value = Math.round(record.rateUnder().toDouble() * 1000.0) / 1000.0
                                 it.source = record.source()
+                                it.record = record
                             }
                         } ?: run {
                             valueList["${record.pivotType()}_${record.pivotValue()}_${record.pivotBias()}_${TargetPivot.UNDER.name}_${record.timeType()}"] =
@@ -276,7 +283,8 @@ class VoddsController : CoroutineScope, IGettingSnapshotListener {
                                             Math.round(record.rateUnder().toDouble() * 1000.0) / 1000.0,
                                             matchId = record.matchId(),
                                             eventId = record.eventId(),
-                                            recordId = record.id()
+                                            recordId = record.id(),
+                                            record = record
                                     )
                         }
                     }
