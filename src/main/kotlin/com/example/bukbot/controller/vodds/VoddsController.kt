@@ -25,8 +25,6 @@ import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import javax.annotation.PostConstruct
 
-
-
 @Component
 class VoddsController : CoroutineScope, IGettingSnapshotListener {
 
