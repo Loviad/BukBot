@@ -61,7 +61,6 @@ class VoddsController : CoroutineScope, IGettingSnapshotListener {
     @PostConstruct
     fun init() {
         settings.addSettingsEventListener(this)
-        start()
     }
 
     override fun onGettingSnapshotChange(newValue: Boolean) {
@@ -77,7 +76,7 @@ class VoddsController : CoroutineScope, IGettingSnapshotListener {
 
         /* Create SportsFeedClient using default config file (located in conf folder - libSportsConfig.json) */
         val path = System.getProperty("user.dir")
-        val client = factory.createFromConfigFile("$path\\conf\\libSportConfig.json")
+        val client = factory.createFromConfigFile("$path/conf/libSportConfig.json")
 //        val client = factory.create()
 
         /* A single client supports multiple views.
@@ -96,6 +95,7 @@ class VoddsController : CoroutineScope, IGettingSnapshotListener {
         /* Read data by polling the view from a feed view, basically it is to repeatedly poll for the latest snapshot */
         api.getBalance()
         voddsInterractor.startParsing()
+        println("start")
         while (settings.getGettingSnapshot()) {
             /* You can update 'IB2Match' to 'SoccerMatch' or 'TennisMatch' or etc. according to the type of FeedView you initialized */
             val limit = 3
@@ -106,6 +106,7 @@ class VoddsController : CoroutineScope, IGettingSnapshotListener {
 
             TimeUnit.SECONDS.sleep(10L)
         }
+        println("stop")
         voddsInterractor.stopParsing()
 
     }
@@ -157,7 +158,9 @@ class VoddsController : CoroutineScope, IGettingSnapshotListener {
             total?.let {
 //                print("${it.first}\t${it.second.source}:${it.second.type}:${it.second.pivotBias}:${it.second.pivotType}:${it.second.pivotValue}:${it.second.value}:${it.second.pinValue}\n")
                 api.checkAndPlaceBetTicket(it.second) { result, txt ->
-                    println(result)
+                    if (result){
+                    println("123")
+                    }
                     println(txt)
 //                    if (result) {
 //                        voddsInterractor.onPlaceBet(PlacingBet(
@@ -172,6 +175,9 @@ class VoddsController : CoroutineScope, IGettingSnapshotListener {
             hdp?.let {
 //                print("${it.first}\t${it.second.source}:${it.second.type}:${it.second.pivotBias}:${it.second.pivotType}:${it.second.pivotValue}:${it.second.value}:${it.second.pinValue}\n")
                 api.checkAndPlaceBetTicket(it.second) { result, txt ->
+                    if (result){
+                        println("123")
+                    }
                     println(result)
                     println(txt)
 //                    if (result) {

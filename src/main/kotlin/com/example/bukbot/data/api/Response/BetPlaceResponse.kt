@@ -5,8 +5,8 @@ data class BetPlaceResponse(
         val actionStatus: Int?,
         val username: String?,
         val id: String?,
-        val betStatus: Int?,
-        val betAmount: Double?,
-        val betOdd: Double?,
+        val betStatus: String?,
+        val betAmount: Float?,
+        val betOdd: Float?,
         val reqId: String?
 )

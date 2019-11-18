@@ -84,8 +84,8 @@ class ApiClient: CoroutineScope {
                     .build()
             try {
                 val response = client.newCall(request).execute()
-                val s = response.body()!!.string()
-                val staff2: Balance = mapper.readValue(s)
+                println(response.body()!!.string())
+//                val staff2: Balance = mapper.readValue(s)
             } catch (e: Exception) {
                 Unit
             }
@@ -222,10 +222,11 @@ class ApiClient: CoroutineScope {
 //        val body = RequestBody.create(JSON,
 //                "\"username\":\"unity_group153\", \"accessToken\":${getAccessToken()!!}, \"reqId\":\"$zUn\", \"company\":\"${item.source.toLowerCase()}\", \"targetType\":\"$targetType\", \"matchId\":\"${item.matchId}\", \"eventId\":\"${item.eventId}\", \"recordId\":${item.recordId}"
 //        )
+        val zUn = UUID.randomUUID().toString()
         val body = FormBody.Builder()
                 .add("username", "unity_group153")
                 .add("accessToken", getAccessToken()!!)
-                .add("reqId", UUID.randomUUID().toString())
+                .add("reqId", zUn)
                 .add("company", item.source.toLowerCase())
                 .add("targetType", targetType)
                 .add("sportType", "soccer")
@@ -242,11 +243,49 @@ class ApiClient: CoroutineScope {
             val response1 = client.newCall(request1).execute()
             val k = response1.body()!!.string()
             if (response1.code() == 200) {
-                val staff2: BetTicketResponse = mapper.readValue(k, BetTicketResponse::class.java)
-                println("min:\t${staff2.minStake} -!- ${staff2.actionStatus}")
+                val objResponse: BetTicketResponse = mapper.readValue(k, BetTicketResponse::class.java)
+//                println("min:\t${staff2.minStake} -!- ${staff2.actionStatus}")
+                if (zUn == objResponse.reqId && (Math.round(objResponse.currentOdd!!.toDouble() * 1000.0) / 1000.0) >= rate) {
+                    if(objResponse.minStake!! <= settings.getGold() && objResponse.maxStake!!.toDouble() >= settings.getGold()) {
+                        val body = FormBody.Builder()
+                                .add("username", "unity_group153")
+                                .add("accessToken", getAccessToken()!!)
+                                .add("reqId", UUID.randomUUID().toString())
+                                .add("company", item.source)
+                                .add("sportType", "soccer")
+                                .add("targetType", targetType)
+                                .add("matchId", item.matchId)
+                                .add("eventId", item.eventId)
+                                .add("recordId", item.recordId.toString())
+                                .add("targetOdd", objResponse.currentOdd.toDouble().toString())
+                                .add("gold", /*settings.getGold().toString()*/"1.0")
+                                .add("acceptBetterOdd", "false")
+                                .add("autoStakeAdjustment", "false")
+                                .build()
+                        val request = Request.Builder()
+                                .url("https://biweb-unity.stagingunity.com/placebet")
+                                .post(body)
+                                .build()
+                        try {
+                            val response2 = client.newCall(request).execute()
+                            if (response2.code() == 200) {
+                                val s = response2.body()!!.string()
+                                val staff2: BetPlaceResponse = mapper.readValue(response2.body()!!.string())
+                                println("BetStatus: " + staff2.betStatus + "\tId:" + staff2.id + "\tTxt:" + staff2.actionMessage + "\tMatchId:" + item.matchId)
+//                                if (staff2.betStatus!! < 2) {
+//                                    balance -= settings.getGold()
+//                                }
+
+
+                            }
+                        } catch (e: Exception) {
+                            Unit
+                        }
+                    }
+                }
+                code(true, response1.body()!!.string())
             }
             response1.close()
-            code(false, response1.body()!!.string())
 //            val objResponse: BetTicketResponse = mapper.readValue(response1.body()!!.string())
 //            if (zUn == objResponse.reqId && (Math.round(objResponse.currentOdd!!.toDouble() * 1000.0) / 1000.0) >= rate) {
 //                if(objResponse.minStake!! <= settings.getGold() && objResponse.maxStake!!.toDouble() >= settings.getGold()) {

@@ -41,7 +41,7 @@ class Settings {
         }
     }
 
-    fun getGettingSnapshot(): Boolean = true
+    fun getGettingSnapshot(): Boolean = GETTING_SNAPSHOT
 
     fun addSettingsEventListener(listener: SettingEvents){
         eventListener.add(listener)
