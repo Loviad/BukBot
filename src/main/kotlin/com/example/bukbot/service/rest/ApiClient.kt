@@ -243,6 +243,7 @@ class ApiClient: CoroutineScope {
             val response1 = client.newCall(request1).execute()
             val k = response1.body()!!.string()
             if (response1.code() == 200) {
+                code(true, response1.body()!!.string())
                 val objResponse: BetTicketResponse = mapper.readValue(k, BetTicketResponse::class.java)
 //                println("min:\t${staff2.minStake} -!- ${staff2.actionStatus}")
                 if (zUn == objResponse.reqId && (Math.round(objResponse.currentOdd!!.toDouble() * 1000.0) / 1000.0) >= rate) {
@@ -283,7 +284,7 @@ class ApiClient: CoroutineScope {
                         }
                     }
                 }
-                code(true, response1.body()!!.string())
+
             }
             response1.close()
 //            val objResponse: BetTicketResponse = mapper.readValue(response1.body()!!.string())

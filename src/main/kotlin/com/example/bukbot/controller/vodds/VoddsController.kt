@@ -76,7 +76,7 @@ class VoddsController : CoroutineScope, IGettingSnapshotListener {
 
         /* Create SportsFeedClient using default config file (located in conf folder - libSportsConfig.json) */
         val path = System.getProperty("user.dir")
-        val client = factory.createFromConfigFile("$path/conf/libSportConfig.json")
+        val client = factory.createFromConfigFile("/home/sergey/projects/BukBot/conf/libSportConfig.json")
 //        val client = factory.create()
 
         /* A single client supports multiple views.
@@ -121,7 +121,7 @@ class VoddsController : CoroutineScope, IGettingSnapshotListener {
             val match = it.next()
             valueList.clear()
 //            println("-------------------------")
-//            println(match.sportType().toString() + ":" + match.league() + ":" + (match as IB2Match).participantOne() + ":" + (match as IB2Match).participantTwo())
+            println( match.sportType().toString() + ":" + match.league() + ":" + (match as IB2Match).participantOne() + ":" + (match as IB2Match).participantTwo())
             printEvents(match.events())
             total = null
             hdp = null
@@ -208,7 +208,7 @@ class VoddsController : CoroutineScope, IGettingSnapshotListener {
         val it = records.iterator()
         while (it.hasNext()) {
             val record = it.next() as IB2Record
-//            println(record.source() + ":" + record.pivotType() + ":" + record.pivotValue() + ":" + record.pivotBias() + ":" + record.oddType() + ":" + record.rateOver() + ":" + record.rateUnder() + ":" + record.rateEqual())
+            println(record.source() + ":" + record.pivotType() + ":" + record.pivotValue() + ":" + record.pivotBias() + ":" + record.oddType() + ":" + record.rateOver() + ":" + record.rateUnder() + ":" + record.rateEqual())
             if(record.pivotType() != PivotType.ONE_TWO) {
 //                print("\n${record.source()}_${record.matchId()}_${record.eventId()}_${record.id()}\t${record.pivotType()}_${record.pivotValue()}_${record.pivotBias()}_${TargetPivot.OVER.name}_${record.timeType()}")
                 when (record.source()) {
