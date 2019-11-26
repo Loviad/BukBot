@@ -1,8 +1,6 @@
 package com.example.bukbot.controller.vodds
 
 import com.example.bukbot.data.database.Dao.BetItemValue
-import com.example.bukbot.data.repositories.EventItemRepository
-import com.example.bukbot.data.repositories.PlacedBetRepository
 import com.example.bukbot.domain.interactors.vodds.VoddsInterractor
 import com.example.bukbot.service.events.IGettingSnapshotListener
 import com.example.bukbot.service.rest.ApiClient
@@ -29,16 +27,11 @@ import javax.annotation.PostConstruct
 class VoddsController : CoroutineScope, IGettingSnapshotListener {
 
     @Autowired
-    private lateinit var mongo: EventItemRepository
-
-    @Autowired
     private lateinit var api: ApiClient
     @Autowired
     private lateinit var settings: Settings
     @Autowired
     private lateinit var voddsInterractor: VoddsInterractor
-    @Autowired
-    private lateinit var plBetRep: PlacedBetRepository
 
     val valueList = HashMap<String, BetItemValue>()
 
@@ -51,16 +44,10 @@ class VoddsController : CoroutineScope, IGettingSnapshotListener {
             ApiThreadFactory()
     ).asCoroutineDispatcher()
 
-    //val systemProps = System.getProperties()
-    init {
-    }
-
-
-    private var PARSING_STATE: Boolean = false
-
     @PostConstruct
     fun init() {
         settings.addSettingsEventListener(this)
+
     }
 
     override fun onGettingSnapshotChange(newValue: Boolean) {
@@ -101,9 +88,7 @@ class VoddsController : CoroutineScope, IGettingSnapshotListener {
             val limit = 3
             val snapshot = noFilterIBetMatchFeedView.snapshot()
             val matches = snapshot.matches()
-//            print("There are currently " + matches.size + " matches.\n")
             printMatches<IBetMatch>(matches)
-
             TimeUnit.SECONDS.sleep(10L)
         }
         println("stop")
@@ -149,45 +134,17 @@ class VoddsController : CoroutineScope, IGettingSnapshotListener {
                         }
                     }
                 }
-//                with(item.value) {
-//                    if(this.source != "PIN88" && this.pivotValue > 0.45  && (((this.pivotValue/this.pinValue)*100)- 100 ) > 2) {
-//                        print("${this.source}:${this.type}:${this.pivotBias}:${this.pivotType}:${this.pivotValue}:${this.value}:${this.pinValue}\n")
-//                    }
-//                }
             }
             total?.let {
-//                print("${it.first}\t${it.second.source}:${it.second.type}:${it.second.pivotBias}:${it.second.pivotType}:${it.second.pivotValue}:${it.second.value}:${it.second.pinValue}\n")
-                api.checkAndPlaceBetTicket(it.second) { result, txt ->
-                    if (result){
-                    println("123")
-                    }
-                    println(txt)
-//                    if (result) {
-//                        voddsInterractor.onPlaceBet(PlacingBet(
-//                                e.host, e.guest, it.item.source, it.ratePin, it.rateVal, it.item.typePivot, it.item.pivotValue
-//                        ))
-//                        plBetRep.saveBet(PlacedBet("${e.eventId}_${it.item.idOdd}", e.eventId, it.item.idOdd))
-//                    } else {
-//                        voddsInterractor.onFailureBet(txt)
-//                    }
+                if (!voddsInterractor.containsId(it.second.id)){
+                    print("${it.first}\t${it.second.source}:${it.second.type}:${it.second.pivotBias}:${it.second.pivotType}:${it.second.pivotValue}:${it.second.value}:${it.second.pinValue}\n")
+                    api.checkAndPlaceBetTicket(it.second)
                 }
             }
             hdp?.let {
-//                print("${it.first}\t${it.second.source}:${it.second.type}:${it.second.pivotBias}:${it.second.pivotType}:${it.second.pivotValue}:${it.second.value}:${it.second.pinValue}\n")
-                api.checkAndPlaceBetTicket(it.second) { result, txt ->
-                    if (result){
-                        println("123")
-                    }
-                    println(result)
-                    println(txt)
-//                    if (result) {
-//                        voddsInterractor.onPlaceBet(PlacingBet(
-//                                e.host, e.guest, it.item.source, it.ratePin, it.rateVal, it.item.typePivot, it.item.pivotValue
-//                        ))
-//                        plBetRep.saveBet(PlacedBet("${e.eventId}_${it.item.idOdd}", e.eventId, it.item.idOdd))
-//                    } else {
-//                        voddsInterractor.onFailureBet(txt)
-//                    }
+                if (!voddsInterractor.containsId(it.second.id)) {
+                    print("${it.first}\t${it.second.source}:${it.second.type}:${it.second.pivotBias}:${it.second.pivotType}:${it.second.pivotValue}:${it.second.value}:${it.second.pinValue}\n")
+                    api.checkAndPlaceBetTicket(it.second)
                 }
             }
             i++
@@ -208,7 +165,7 @@ class VoddsController : CoroutineScope, IGettingSnapshotListener {
         val it = records.iterator()
         while (it.hasNext()) {
             val record = it.next() as IB2Record
-            println(record.source() + ":" + record.pivotType() + ":" + record.pivotValue() + ":" + record.pivotBias() + ":" + record.oddType() + ":" + record.rateOver() + ":" + record.rateUnder() + ":" + record.rateEqual())
+//            println(record.source() + ":" + record.pivotType() + ":" + record.pivotValue() + ":" + record.pivotBias() + ":" + record.oddType() + ":" + record.rateOver() + ":" + record.rateUnder() + ":" + record.rateEqual())
             if(record.pivotType() != PivotType.ONE_TWO) {
 //                print("\n${record.source()}_${record.matchId()}_${record.eventId()}_${record.id()}\t${record.pivotType()}_${record.pivotValue()}_${record.pivotBias()}_${TargetPivot.OVER.name}_${record.timeType()}")
                 when (record.source()) {
@@ -218,6 +175,7 @@ class VoddsController : CoroutineScope, IGettingSnapshotListener {
                         } ?: run {
                             valueList["${record.pivotType()}_${record.pivotValue()}_${record.pivotBias()}_${TargetPivot.OVER.name}_${record.timeType()}"] =
                                     BetItemValue(
+                                            "${record.matchId()}_${record.pivotType()}",
                                             record.source(),
                                             record.pivotType().name,
                                             record.pivotValue().toDouble(),
@@ -235,6 +193,7 @@ class VoddsController : CoroutineScope, IGettingSnapshotListener {
                         } ?: run {
                             valueList["${record.pivotType()}_${record.pivotValue()}_${record.pivotBias()}_${TargetPivot.UNDER.name}_${record.timeType()}"] =
                                     BetItemValue(
+                                            "${record.matchId()}_${record.pivotType()}",
                                             record.source(),
                                             record.pivotType().name,
                                             record.pivotValue().toDouble(),
@@ -253,11 +212,11 @@ class VoddsController : CoroutineScope, IGettingSnapshotListener {
                             if (it.value < (Math.round(record.rateOver().toDouble() * 1000.0) / 1000.0)) {
                                 it.value = Math.round(record.rateOver().toDouble() * 1000.0) / 1000.0
                                 it.source = record.source()
-                                it.record = record
                             }
                         } ?: run {
                             valueList["${record.pivotType()}_${record.pivotValue()}_${record.pivotBias()}_${TargetPivot.OVER.name}_${record.timeType()}"] =
                                     BetItemValue(
+                                            "${record.matchId()}_${record.pivotType()}",
                                             record.source(),
                                             record.pivotType().name,
                                             record.pivotValue().toDouble(),
@@ -266,19 +225,18 @@ class VoddsController : CoroutineScope, IGettingSnapshotListener {
                                             Math.round(record.rateOver().toDouble() * 1000.0) / 1000.0,
                                             matchId = record.matchId(),
                                             eventId = record.eventId(),
-                                            recordId = record.id(),
-                                            record = record
+                                            recordId = record.id()
                                     )
                         }
                         valueList["${record.pivotType()}_${record.pivotValue()}_${record.pivotBias()}_${TargetPivot.UNDER.name}_${record.timeType()}"]?.let {
                             if (it.value < (Math.round(record.rateUnder().toDouble() * 1000.0) / 1000.0)) {
                                 it.value = Math.round(record.rateUnder().toDouble() * 1000.0) / 1000.0
                                 it.source = record.source()
-                                it.record = record
                             }
                         } ?: run {
                             valueList["${record.pivotType()}_${record.pivotValue()}_${record.pivotBias()}_${TargetPivot.UNDER.name}_${record.timeType()}"] =
                                     BetItemValue(
+                                            "${record.matchId()}_${record.pivotType()}",
                                             record.source(),
                                             record.pivotType().name,
                                             record.pivotValue().toDouble(),
@@ -287,8 +245,7 @@ class VoddsController : CoroutineScope, IGettingSnapshotListener {
                                             Math.round(record.rateUnder().toDouble() * 1000.0) / 1000.0,
                                             matchId = record.matchId(),
                                             eventId = record.eventId(),
-                                            recordId = record.id(),
-                                            record = record
+                                            recordId = record.id()
                                     )
                         }
                     }

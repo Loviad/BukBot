@@ -1,6 +1,7 @@
 package com.example.bukbot.service.rest
 
 import com.example.bukbot.BukBotApplication.Companion.backgroundTaskDispatcher
+import com.example.bukbot.controller.placeBet.BetItemValueRepository
 import com.example.bukbot.controller.vodds.VoddsController
 import com.example.bukbot.data.api.Balance
 import com.example.bukbot.data.api.Response.BetTicketResponse
@@ -25,6 +26,8 @@ import org.json.JSONObject
 import org.springframework.beans.factory.annotation.Autowired
 import java.util.*
 import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
+import kotlin.collections.HashMap
 
 
 @Component
@@ -39,6 +42,9 @@ class ApiClient: CoroutineScope {
 
     @Autowired
     private lateinit var settings: Settings
+
+    @Autowired
+    private lateinit var plBet: BetItemValueRepository
 
     override val coroutineContext = Executors.newSingleThreadExecutor(
             ApiThreadFactory()
@@ -175,13 +181,12 @@ class ApiClient: CoroutineScope {
         }
     }
 
-    fun checkAndPlaceBetTicket(item: BetItemValue, code: (result: Boolean, txt: String) -> Unit){
-            placeBetTicket(item, code)
+    fun checkAndPlaceBetTicket(item: BetItemValue){
+            placeBetTicket(item)
     }
 
     @Throws(IOException::class)
-    private fun placeBetTicket(item: BetItemValue, code: (result: Boolean, txt: String) -> Unit) = launch(coroutineContext) {
-
+    private fun placeBetTicket(item: BetItemValue) = launch(coroutineContext) {
 //        if((balance - settings.getGold() < 0.001)) return@launch
         var rate: Double = item.value
         var targetType: String
@@ -203,25 +208,7 @@ class ApiClient: CoroutineScope {
                 return@launch
             }
         }
-//        val body = FormBody.Builder()
-//                                .add("username", "unity_group153")
-//                                .add("accessToken", getAccessToken()!!)
-//                                .add("reqId", UUID.randomUUID().toString())
-//                                .add("company", item.source)
-//                                .add("targettype", targetType)
-//                                .add("market", item.oddType.toLowerCase())
-//                                .add("eventid", item.idEvent)
-//                                .add("oddid", item.idOdd.toString())
-//                                .add("targetodd", rate.toString())
-//                                .add("gold", settings.getGold().toString())
-//                                .add("acceptbetterodd", "false")
-//                                .add("autoStakeAdjustment", "false")
-//                                .add("createdTime", item.createdTime.toString())
-//                                .build()
-//        val body = RequestBody.create(JSON, o.toString())
-//        val body = RequestBody.create(JSON,
-//                "\"username\":\"unity_group153\", \"accessToken\":${getAccessToken()!!}, \"reqId\":\"$zUn\", \"company\":\"${item.source.toLowerCase()}\", \"targetType\":\"$targetType\", \"matchId\":\"${item.matchId}\", \"eventId\":\"${item.eventId}\", \"recordId\":${item.recordId}"
-//        )
+
         val zUn = UUID.randomUUID().toString()
         val body = FormBody.Builder()
                 .add("username", "unity_group153")
@@ -243,7 +230,6 @@ class ApiClient: CoroutineScope {
             val response1 = client.newCall(request1).execute()
             val k = response1.body()!!.string()
             if (response1.code() == 200) {
-                code(true, response1.body()!!.string())
                 val objResponse: BetTicketResponse = mapper.readValue(k, BetTicketResponse::class.java)
 //                println("min:\t${staff2.minStake} -!- ${staff2.actionStatus}")
                 if (zUn == objResponse.reqId && (Math.round(objResponse.currentOdd!!.toDouble() * 1000.0) / 1000.0) >= rate) {
@@ -259,7 +245,7 @@ class ApiClient: CoroutineScope {
                                 .add("eventId", item.eventId)
                                 .add("recordId", item.recordId.toString())
                                 .add("targetOdd", objResponse.currentOdd.toDouble().toString())
-                                .add("gold", /*settings.getGold().toString()*/"1.0")
+                                .add("gold", settings.getGold().toString())
                                 .add("acceptBetterOdd", "false")
                                 .add("autoStakeAdjustment", "false")
                                 .build()
@@ -270,17 +256,23 @@ class ApiClient: CoroutineScope {
                         try {
                             val response2 = client.newCall(request).execute()
                             if (response2.code() == 200) {
-                                val s = response2.body()!!.string()
                                 val staff2: BetPlaceResponse = mapper.readValue(response2.body()!!.string())
                                 println("BetStatus: " + staff2.betStatus + "\tId:" + staff2.id + "\tTxt:" + staff2.actionMessage + "\tMatchId:" + item.matchId)
-//                                if (staff2.betStatus!! < 2) {
-//                                    balance -= settings.getGold()
-//                                }
-
-
+                                when(staff2.betStatus){
+                                   "PENDING", "ACCEPTED", "ACCEPTED_UNKNOWN_ID" -> {
+                                       plBet.addPlaceBet(item)
+                                   }
+                                   else -> {
+                                       if(staff2.actionStatus == 13 || staff2.actionStatus == 14) {
+                                           settings.pause()
+                                           TimeUnit.HOURS.sleep(6L)
+                                           settings.start()
+                                       }
+                                   }
+                                }
                             }
                         } catch (e: Exception) {
-                            Unit
+                            println("error PLACEBET")
                         }
                     }
                 }

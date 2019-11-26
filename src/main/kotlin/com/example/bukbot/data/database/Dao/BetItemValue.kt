@@ -8,6 +8,8 @@ import org.springframework.data.mongodb.core.mapping.Document
 
 @Document
 class BetItemValue(
+        @Id
+        val id: String,
         var source: String,
         val pivotType: String,
         val pivotValue: Double,
@@ -17,7 +19,5 @@ class BetItemValue(
         var pinValue: Double = 0.0,
         val matchId: String,
         val eventId: String,
-        val recordId: Long,
-        var record: IB2Record? = null
-) {
-}
+        val recordId: Long
+)

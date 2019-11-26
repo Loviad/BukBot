@@ -12,6 +12,8 @@ class Settings {
     private var GETTING_SNAPSHOT: Boolean = false                                                                       //запрашивать события с VODDS
     private var GOLD: Double = 25.0
 
+    private var notPaused: Boolean = true
+
 
     private val eventListener = ArrayList<SettingEvents>()
 
@@ -29,19 +31,27 @@ class Settings {
         GOLD = value
     }
 
-    fun getBetPlacing(): Boolean = BET_PLACING
+    fun getBetPlacing(): Boolean = BET_PLACING && notPaused
 
     fun setGettingSnapshot(value: Boolean){
         GETTING_SNAPSHOT = value
         sendEvents<IGettingSnapshotListener> {
             it.onGettingSnapshotChange(value)
         }
-        if (!value){
-            setBetPlacing(value)
+    }
+
+    fun pause(){
+        notPaused = false
+    }
+
+    fun start() {
+        notPaused = true
+        sendEvents<IGettingSnapshotListener> {
+            it.onGettingSnapshotChange(true)
         }
     }
 
-    fun getGettingSnapshot(): Boolean = GETTING_SNAPSHOT
+    fun getGettingSnapshot(): Boolean = GETTING_SNAPSHOT && notPaused
 
     fun addSettingsEventListener(listener: SettingEvents){
         eventListener.add(listener)

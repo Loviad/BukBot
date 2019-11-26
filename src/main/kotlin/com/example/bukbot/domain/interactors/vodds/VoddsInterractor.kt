@@ -1,7 +1,7 @@
 package com.example.bukbot.domain.interactors.vodds
 
+import com.example.bukbot.controller.placeBet.BetItemValueRepository
 import com.example.bukbot.data.SSEModel.PlacingBet
-import com.example.bukbot.data.database.Dao.PlacedBet
 import com.example.bukbot.service.events.VoddsEvents
 import com.example.bukbot.service.events.VoddsFailureBetListener
 import com.example.bukbot.service.events.VoddsPlacingBetListener
@@ -15,6 +15,9 @@ class VoddsInterractor {
 
     @Autowired
     private lateinit var api: ApiClient
+
+    @Autowired
+    private lateinit var plBet: BetItemValueRepository
 
     private val eventListener = ArrayList<VoddsEvents>()
 
@@ -44,6 +47,10 @@ class VoddsInterractor {
 
     fun getBalance(){
         api.getCreditBalance()
+    }
+
+    fun containsId(id: String): Boolean{
+        return plBet.containsId(id)
     }
 
     fun onPlaceBet(item: PlacingBet) {
