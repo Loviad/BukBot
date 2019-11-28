@@ -270,7 +270,7 @@ class ApiClient: CoroutineScope {
                                        if(staff2.actionStatus == 13 || staff2.actionStatus == 14) {
                                            settings.pause()
 //                                           TimeUnit.HOURS.sleep(6L)
-                                           TimeUnit.MINUTES.sleep(1L) // сюда надо сделать получение из настроек паузы перед ожиданием
+                                           TimeUnit.MINUTES.sleep(1L) // сюда надо сделать получение из настроек паузы перед ожиданием, зациклить ожидание пока не прилетит положительный баланс
                                            settings.start()
                                        }
                                    }
