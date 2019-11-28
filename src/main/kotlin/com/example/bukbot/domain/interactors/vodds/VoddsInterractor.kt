@@ -49,10 +49,6 @@ class VoddsInterractor {
         api.getCreditBalance()
     }
 
-    fun containsId(id: String): Boolean{
-        return plBet.containsId(id)
-    }
-
     fun onPlaceBet(item: PlacingBet) {
         sendEvents<VoddsPlacingBetListener> {
             it.onPlacingBet(item)

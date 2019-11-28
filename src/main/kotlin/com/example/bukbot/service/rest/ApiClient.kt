@@ -187,7 +187,10 @@ class ApiClient: CoroutineScope {
 
     @Throws(IOException::class)
     private fun placeBetTicket(item: BetItemValue) = launch(coroutineContext) {
-//        if((balance - settings.getGold() < 0.001)) return@launch
+        if(plBet.containsId(item.id)) {
+            println("Find double Bet")
+            return@launch
+        }
         var rate: Double = item.value
         var targetType: String
 
@@ -233,7 +236,7 @@ class ApiClient: CoroutineScope {
                 val objResponse: BetTicketResponse = mapper.readValue(k, BetTicketResponse::class.java)
 //                println("min:\t${staff2.minStake} -!- ${staff2.actionStatus}")
                 if (zUn == objResponse.reqId && (Math.round(objResponse.currentOdd!!.toDouble() * 1000.0) / 1000.0) >= rate) {
-                    if(objResponse.minStake!! <= settings.getGold() && objResponse.maxStake!!.toDouble() >= settings.getGold()) {
+                    if(objResponse.minStake!! <= settings.getGoldF() && objResponse.maxStake!! >= settings.getGoldF() && settings.getBetPlacing()) {
                         val body = FormBody.Builder()
                                 .add("username", "unity_group153")
                                 .add("accessToken", getAccessToken()!!)
@@ -258,6 +261,7 @@ class ApiClient: CoroutineScope {
                             if (response2.code() == 200) {
                                 val staff2: BetPlaceResponse = mapper.readValue(response2.body()!!.string())
                                 println("BetStatus: " + staff2.betStatus + "\tId:" + staff2.id + "\tTxt:" + staff2.actionMessage + "\tMatchId:" + item.matchId)
+                                println("min:" + objResponse.minStake!! + "\tmax:" + objResponse.maxStake!!)
                                 when(staff2.betStatus){
                                    "PENDING", "ACCEPTED", "ACCEPTED_UNKNOWN_ID" -> {
                                        plBet.addPlaceBet(item)
@@ -265,66 +269,25 @@ class ApiClient: CoroutineScope {
                                    else -> {
                                        if(staff2.actionStatus == 13 || staff2.actionStatus == 14) {
                                            settings.pause()
-                                           TimeUnit.HOURS.sleep(6L)
+//                                           TimeUnit.HOURS.sleep(6L)
+                                           TimeUnit.MINUTES.sleep(1L)
                                            settings.start()
                                        }
                                    }
                                 }
                             }
+                            response2.close()
                         } catch (e: Exception) {
                             println("error PLACEBET")
                         }
+                    } else {
+                        plBet.addPlaceBet(item)
+                        println("NotPlaced:${item.source}:${item.pivotType}:${item.pivotValue}:${item.pivotBias}:${item.type.toString()}:${item.value}:${item.pinValue}:${item.home}:${item.guest}:${item.timeType.toString()}")
                     }
                 }
 
             }
             response1.close()
-//            val objResponse: BetTicketResponse = mapper.readValue(response1.body()!!.string())
-//            if (zUn == objResponse.reqId && (Math.round(objResponse.currentOdd!!.toDouble() * 1000.0) / 1000.0) >= rate) {
-//                if(objResponse.minStake!! <= settings.getGold() && objResponse.maxStake!!.toDouble() >= settings.getGold()) {
-//                    println("----StartPlace----")
-//                    code(true, "")
-//                    if (settings.getBetPlacing() && settings.getGettingSnapshot()) {
-//                        val body = FormBody.Builder()
-//                                .add("username", "unity_group153")
-//                                .add("accessToken", getAccessToken()!!)
-//                                .add("reqId", UUID.randomUUID().toString())
-//                                .add("company", item.source)
-//                                .add("targettype", targetType)
-////                                .add("market", item.oddType.toLowerCase())
-////                                .add("eventid", item.idEvent)
-////                                .add("oddid", item.idOdd.toString())
-//                                .add("targetodd", rate.toString())
-//                                .add("gold", settings.getGold().toString())
-//                                .add("acceptbetterodd", "false")
-//                                .add("autoStakeAdjustment", "false")
-////                                .add("createdTime", item.createdTime.toString())
-//                                .build()
-//                        val request = Request.Builder()
-//                                .url("https://biweb-unity.stagingunity.com/placebet")
-//                                .post(body)
-//                                .build()
-//                        try {
-//                            val response2 = client.newCall(request).execute()
-//                            if (response2.code() == 200) {
-//                                val staff2: BetPlaceResponse = mapper.readValue(response2.body()!!.string())
-//                                if (staff2.betStatus!! < 2) {
-//                                    //code(true)
-//                                    balance -= settings.getGold()
-//                                }
-////                                println("BetStatus: " + staff2.betStatus + "\tBalance:" + balance + "\tId:" + staff2.id + "\tTxt:" + staff2.actionMessage)
-////                                val s = response2.body()!!.string()
-//                            }
-//                        } catch (e: Exception) {
-//                            Unit
-//                        }
-//                    }
-//
-//                }
-//
-//            } else {
-//                code(false, response1.body()!!.string())
-//            }
         } catch (e: Exception) {
             Unit
         }

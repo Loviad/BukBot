@@ -19,5 +19,8 @@ class BetItemValue(
         var pinValue: Double = 0.0,
         val matchId: String,
         val eventId: String,
-        val recordId: Long
+        val recordId: Long,
+        val home: String = "",
+        val guest: String = "",
+        val timeType: String = ""
 )

@@ -47,11 +47,15 @@ class Settings {
     fun start() {
         notPaused = true
         sendEvents<IGettingSnapshotListener> {
-            it.onGettingSnapshotChange(true)
+            if (GETTING_SNAPSHOT) it.onGettingSnapshotChange(true)
         }
     }
 
     fun getGettingSnapshot(): Boolean = GETTING_SNAPSHOT && notPaused
+
+    fun getSnapState(): Boolean = GETTING_SNAPSHOT
+
+    fun getBettingState(): Boolean = BET_PLACING
 
     fun addSettingsEventListener(listener: SettingEvents){
         eventListener.add(listener)

@@ -10,10 +10,7 @@ import com.example.bukbot.data.telegram.models.loginInfo.LoginInfo
 import com.example.bukbot.domain.interactors.auth.AuthInterractor
 import com.example.bukbot.domain.interactors.page.PageInterractor
 import com.example.bukbot.domain.interactors.vodds.VoddsInterractor
-import com.example.bukbot.service.events.IGettingSnapshotListener
-import com.example.bukbot.service.events.VoddsFailureBetListener
-import com.example.bukbot.service.events.VoddsPlacingBetListener
-import com.example.bukbot.service.events.VoddsSnapshotListener
+import com.example.bukbot.service.events.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import org.springframework.stereotype.Controller
@@ -59,6 +56,7 @@ class PageController : CoroutineScope,
     @PostConstruct
     fun init() {
         voddsInterractor.addEventListener(this)
+        pageInterractor.setControl(this)
     }
 
 
@@ -119,6 +117,8 @@ class PageController : CoroutineScope,
     fun commandParse(@RequestBody note: String, @RequestParam(required = false) name: String) {
         when (name) {
             "switchParse" -> switchParse()
+            "switchBetting" -> switchBetting()
+            else -> Unit
         }
     }
 
@@ -126,7 +126,30 @@ class PageController : CoroutineScope,
         pageInterractor.switchParse()
     }
 
+    private fun switchBetting() {
+        pageInterractor.switchBetting()
+    }
+
     override fun onStartSnapshot() {
+        val state = pageInterractor.getSystemState()
+        emittersData.forEach { emitter ->
+            nonBlockingService.execute {
+                try {
+                    val k = SseEmitter.event()
+                            .name("systemState")
+                            .reconnectTime(20_000L)
+                            .data(SystemStateMessage(state.first, state.second),
+                                    MediaType.APPLICATION_JSON)
+                    emitter.value.send(k)
+
+                } catch (ioe: IOException) {
+                    emittersData.remove(emitter.key)
+                }
+            }
+        }
+    }
+
+    fun onStartBetting() {
         val state = pageInterractor.getSystemState()
         emittersData.forEach { emitter ->
             nonBlockingService.execute {

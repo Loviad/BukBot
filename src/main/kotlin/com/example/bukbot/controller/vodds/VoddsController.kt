@@ -35,6 +35,9 @@ class VoddsController : CoroutineScope, IGettingSnapshotListener {
 
     val valueList = HashMap<String, BetItemValue>()
 
+    var home: String = ""
+    var guest: String = ""
+
     override val coroutineContext = //backgroundTaskDispatcher
             Executors.newSingleThreadExecutor(
                     VoddsThreadFactory()
@@ -106,7 +109,9 @@ class VoddsController : CoroutineScope, IGettingSnapshotListener {
             val match = it.next()
             valueList.clear()
 //            println("-------------------------")
-            println( match.sportType().toString() + ":" + match.league() + ":" + (match as IB2Match).participantOne() + ":" + (match as IB2Match).participantTwo())
+//            println( match.sportType().toString() + ":" + match.league() + ":" + (match as IB2Match).participantOne() + ":" + (match as IB2Match).participantTwo())
+            home = (match as IB2Match).participantOne()
+            guest = (match as IB2Match).participantTwo()
             printEvents(match.events())
             total = null
             hdp = null
@@ -136,16 +141,12 @@ class VoddsController : CoroutineScope, IGettingSnapshotListener {
                 }
             }
             total?.let {
-                if (!voddsInterractor.containsId(it.second.id)){
-                    print("${it.first}\t${it.second.source}:${it.second.type}:${it.second.pivotBias}:${it.second.pivotType}:${it.second.pivotValue}:${it.second.value}:${it.second.pinValue}\n")
+//                    print("${it.first}\t${it.second.source}:${it.second.type}:${it.second.pivotBias}:${it.second.pivotType}:${it.second.pivotValue}:${it.second.value}:${it.second.pinValue}\n")
                     api.checkAndPlaceBetTicket(it.second)
-                }
             }
             hdp?.let {
-                if (!voddsInterractor.containsId(it.second.id)) {
-                    print("${it.first}\t${it.second.source}:${it.second.type}:${it.second.pivotBias}:${it.second.pivotType}:${it.second.pivotValue}:${it.second.value}:${it.second.pinValue}\n")
+//                    print("${it.first}\t${it.second.source}:${it.second.type}:${it.second.pivotBias}:${it.second.pivotType}:${it.second.pivotValue}:${it.second.value}:${it.second.pinValue}\n")
                     api.checkAndPlaceBetTicket(it.second)
-                }
             }
             i++
         }
@@ -185,7 +186,10 @@ class VoddsController : CoroutineScope, IGettingSnapshotListener {
                                             Math.round(record.rateOver().toDouble() * 1000.0) / 1000.0,
                                             record.matchId(),
                                             record.eventId(),
-                                            record.id()
+                                            record.id(),
+                                            home,
+                                            guest,
+                                            record.timeType().toString()
                                     )
                         }
                         valueList["${record.pivotType()}_${record.pivotValue()}_${record.pivotBias()}_${TargetPivot.UNDER.name}_${record.timeType()}"]?.let {
@@ -203,7 +207,10 @@ class VoddsController : CoroutineScope, IGettingSnapshotListener {
                                             Math.round(record.rateUnder().toDouble() * 1000.0) / 1000.0,
                                             record.matchId(),
                                             record.eventId(),
-                                            record.id()
+                                            record.id(),
+                                            home,
+                                            guest,
+                                            record.timeType().toString()
                                     )
                         }
                     }
@@ -225,7 +232,10 @@ class VoddsController : CoroutineScope, IGettingSnapshotListener {
                                             Math.round(record.rateOver().toDouble() * 1000.0) / 1000.0,
                                             matchId = record.matchId(),
                                             eventId = record.eventId(),
-                                            recordId = record.id()
+                                            recordId = record.id(),
+                                            home = home,
+                                            guest = guest,
+                                            timeType = record.timeType().toString()
                                     )
                         }
                         valueList["${record.pivotType()}_${record.pivotValue()}_${record.pivotBias()}_${TargetPivot.UNDER.name}_${record.timeType()}"]?.let {
@@ -245,7 +255,10 @@ class VoddsController : CoroutineScope, IGettingSnapshotListener {
                                             Math.round(record.rateUnder().toDouble() * 1000.0) / 1000.0,
                                             matchId = record.matchId(),
                                             eventId = record.eventId(),
-                                            recordId = record.id()
+                                            recordId = record.id(),
+                                            home = home,
+                                            guest = guest,
+                                            timeType = record.timeType().toString()
                                     )
                         }
                     }

@@ -16,8 +16,9 @@ class BetItemValueRepository {
 
     @PostConstruct
     fun start() {
-        mongoTemplate.findAll(BetItemValue::class.java).map {
-            listBettedMatch[it.id] = it
+        mongoTemplate.findAll(BetItemValue::class.java).map { item ->
+            println("${item.source}:${item.pivotType}:${item.pivotValue}:${item.pivotBias}:${item.type.toString()}:${item.value}:${item.pinValue}:${item.home}:${item.guest}:${item.timeType.toString()}")
+            listBettedMatch[item.id] = item
         }
     }
 
@@ -30,7 +31,7 @@ class BetItemValueRepository {
             false
         } else {
             listBettedMatch[item.id] = item
-            mongoTemplate.save(item)
+            mongoTemplate.save(item,"betItemValue")
             true
         }
     }
