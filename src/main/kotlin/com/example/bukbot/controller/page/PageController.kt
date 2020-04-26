@@ -1,10 +1,11 @@
 package com.example.bukbot.controller.page
 
 import com.example.bukbot.BukBotApplication.Companion.backgroundTaskDispatcher
+import com.example.bukbot.data.SSEModel.MatchCrop
 import com.example.bukbot.data.SSEModel.PlacingBet
 import com.example.bukbot.data.SSEModel.SystemStateMessage
-import com.example.bukbot.data.browsermodels.StatusBrowser
 import com.example.bukbot.data.database.Dao.ValueBetsItem
+import com.example.bukbot.data.oddsList.PinOdd
 import com.example.bukbot.data.telegram.models.IMessageData
 import com.example.bukbot.data.telegram.models.loginInfo.LoginInfo
 import com.example.bukbot.domain.interactors.auth.AuthInterractor
@@ -25,6 +26,7 @@ import java.io.IOException
 import java.util.*
 import java.util.concurrent.Executors
 import javax.annotation.PostConstruct
+import kotlin.collections.ArrayList
 import kotlin.collections.HashMap
 import kotlin.math.abs
 
@@ -33,7 +35,9 @@ import kotlin.math.abs
 class PageController : CoroutineScope,
         VoddsSnapshotListener,
         VoddsPlacingBetListener,
-        VoddsFailureBetListener {
+        VoddsFailureBetListener,
+        VoddsMatchListUpdate,
+        VoddsInsertOddEvent{
 
     override val coroutineContext = backgroundTaskDispatcher
 
@@ -248,14 +252,14 @@ class PageController : CoroutineScope,
         }
     }
 
-    fun sendValuebetsItemsUpdate(list: List<ValueBetsItem>) {
+    override suspend fun onMatchesUpdate(matches: List<MatchCrop>) {
         emittersData.forEach { emitter ->
             nonBlockingService.execute {
                 try {
                     val k = SseEmitter.event()
-                            .name("valuebetsUpdate")
+                            .name("matchUpdate")
                             .reconnectTime(20_000L)
-                            .data(list,
+                            .data(matches,
                                     MediaType.APPLICATION_JSON)
                     emitter.value.send(k)
 
@@ -266,14 +270,50 @@ class PageController : CoroutineScope,
         }
     }
 
-    fun sendStatus(status: String) {
+    override suspend fun onInsertOdds(odds: List<PinOdd>) {
         emittersData.forEach { emitter ->
             nonBlockingService.execute {
                 try {
                     val k = SseEmitter.event()
-                            .name("statusChange")
+                            .name("oddsInsert")
                             .reconnectTime(20_000L)
-                            .data(StatusBrowser(status),
+                            .data(odds,
+                                    MediaType.APPLICATION_JSON)
+                    emitter.value.send(k)
+
+                } catch (ioe: IOException) {
+                    emittersData.remove(emitter.key)
+                }
+            }
+        }
+    }
+
+    override suspend fun onPinDownEvent(events: List<String>) {
+        emittersData.forEach { emitter ->
+            nonBlockingService.execute {
+                try {
+                    val k = SseEmitter.event()
+                            .name("pinDownEvent")
+                            .reconnectTime(20_000L)
+                            .data(events,
+                                    MediaType.APPLICATION_JSON)
+                    emitter.value.send(k)
+
+                } catch (ioe: IOException) {
+                    emittersData.remove(emitter.key)
+                }
+            }
+        }
+    }
+
+    fun sendValuebetsItemsUpdate(list: List<ValueBetsItem>) {
+        emittersData.forEach { emitter ->
+            nonBlockingService.execute {
+                try {
+                    val k = SseEmitter.event()
+                            .name("valuebetsUpdate")
+                            .reconnectTime(20_000L)
+                            .data(list,
                                     MediaType.APPLICATION_JSON)
                     emitter.value.send(k)
 
@@ -301,4 +341,7 @@ class PageController : CoroutineScope,
             }
         }
     }
+
+
+
 }

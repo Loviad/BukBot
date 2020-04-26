@@ -1,23 +1,19 @@
 package com.example.bukbot.domain.interactors.vodds
 
-import com.example.bukbot.controller.placeBet.BetItemValueRepository
+import com.example.bukbot.data.SSEModel.MatchCrop
 import com.example.bukbot.data.SSEModel.PlacingBet
-import com.example.bukbot.service.events.VoddsEvents
-import com.example.bukbot.service.events.VoddsFailureBetListener
-import com.example.bukbot.service.events.VoddsPlacingBetListener
-import com.example.bukbot.service.events.VoddsSnapshotListener
+import com.example.bukbot.data.oddsList.PinOdd
+import com.example.bukbot.service.events.*
 import com.example.bukbot.service.rest.ApiClient
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Component
+import java.util.HashMap
 
 @Component
 class VoddsInterractor {
 
     @Autowired
     private lateinit var api: ApiClient
-
-    @Autowired
-    private lateinit var plBet: BetItemValueRepository
 
     private val eventListener = ArrayList<VoddsEvents>()
 
@@ -29,17 +25,17 @@ class VoddsInterractor {
         eventListener.remove(listener)
     }
 
-    private inline fun <reified TEvent : VoddsEvents> sendEvents(noinline sender: (TEvent) -> Unit) {
+    private suspend inline fun <reified TEvent : VoddsEvents> sendEvents(noinline sender: suspend (TEvent) -> Unit) {
         eventListener.filterIsInstance<TEvent>().forEach { sender(it) }
     }
 
-    fun startParsing(){
+    suspend fun startParsing(){
         sendEvents<VoddsSnapshotListener> {
             it.onStartSnapshot()
         }
     }
 
-    fun stopParsing(){
+    suspend fun stopParsing(){
         sendEvents<VoddsSnapshotListener> {
             it.onStopSnapshot()
         }
@@ -49,15 +45,41 @@ class VoddsInterractor {
         api.getCreditBalance()
     }
 
-    fun onPlaceBet(item: PlacingBet) {
+    suspend fun onPlaceBet(item: PlacingBet) {
         sendEvents<VoddsPlacingBetListener> {
             it.onPlacingBet(item)
         }
     }
 
-    fun onFailureBet(txt: String) {
+    suspend fun onFailureBet(txt: String) {
         sendEvents<VoddsFailureBetListener> {
             it.onFailureBet(txt)
         }
     }
+
+    suspend fun changePinList(pinOddList: HashMap<String, PinOdd>) {
+        sendEvents<VoddsInsertOddEvent> {
+            it.onInsertOdds(
+                    pinOddList.map {pin ->
+                        pin.value
+                    }
+            )
+        }
+    }
+
+    suspend fun findPinDownEvent(pinDownEvent: ArrayList<String>) {
+        sendEvents<VoddsInsertOddEvent> {
+            it.onPinDownEvent(pinDownEvent as List<String>)
+        }
+    }
+
+//    suspend fun changeMatchList(matchList: HashMap<String, MatchItem>) {
+//        sendEvents<VoddsMatchListUpdate> {
+//            it.onMatchesUpdate(
+//                    matchList.map { match ->
+//                        MatchCrop(match.value.idStr,match.value.host, match.value.guest, match.value.startTime)
+//                    }
+//            )
+//        }
+//    }
 }

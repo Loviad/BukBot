@@ -76,29 +76,22 @@
                 <b-row >
                     <div class="col shadow-sm p-3 mt-5 mr-5 mb-5 bg-light rounded">
                         <div class="row p-3 mb-2 ml-2 mr-2">
+                            <div class="col p-1">id</div>
                             <div class="col p-1">Дом</div>
                             <div class="col p-1">Гости</div>
-                            <div class="col p-1">Контора</div>
-                            <div class="col p-1">Pin.к</div>
-                            <div class="col p-1">Кон.к</div>
-                            <div class="col p-1">Значение</div>
-                            <div class="col p-1">HDP/TOTAL</div>
+                            <div class="col p-1">Начало</div>
                         </div>
-                        <div v-for="item in bets" class="row shadow p-3 mb-2 ml-2 mr-2 bg-white rounded">
-                            <div class="col p-1">{{ item.home }}</div>
+                        <div v-for="item in matches" class="row shadow p-3 mb-2 ml-2 mr-2 bg-white rounded">
+                            <div class="col p-1">{{ item.id }}</div>
+                            <div class="col p-1">{{ item.host }}</div>
                             <div class="col p-1">{{ item.guest }}</div>
-                            <div class="col p-1">{{ item.source }}</div>
-                            <div class="col p-1">{{ item.pinVal }}</div>
-                            <div class="col p-1">{{ item.sourceVal }}</div>
-                            <div class="col p-1">{{ item.valueType }}</div>
-                            <div class="col p-1">{{ item.type }}</div>
+                            <div class="col p-1">{{ item.startTime }}</div>
                         </div>
                     </div>
                     <div class="col shadow-sm p-3 mt-5 mb-5 bg-light rounded">
-                        {{ colCount }}
-                    </div>
-                    <div class="col shadow-sm p-3 mt-5 ml-5 mb-5 bg-light rounded">
-                        3 из 3
+                        <div v-for="ev in downEvents" class="row shadow p-3 mb-2 ml-2 mr-2 bg-white rounded">
+                            <div class="col p-1">{{ ev }}</div>
+                        </div>
                     </div>
                 </b-row>
 
@@ -140,7 +133,9 @@
                spinVisible: false
             },
             bets: [ ],
-            failure: [ ]
+            failure: [ ],
+            matches: [ ],
+            downEvents: [ ]
         },
         created() {
             this.setupStream();
@@ -161,6 +156,25 @@
                 es.addEventListener('balance', event => {
                     let data = JSON.parse(event.data);
                     this.parsStateValue.class = data.balance;
+                }, false);
+
+                es.addEventListener('matchUpdate', event => {
+                console.log(event.data);
+                    let data = JSON.parse(event.data);
+                    this.matches = data;
+                }, false);
+
+                es.addEventListener('oddsInsert', event => {
+                console.log(event.data);
+                    let data = JSON.parse(event.data);
+                    console.log(data);
+                }, false);
+
+                es.addEventListener('pinDownEvent', event => {
+                console.log(event.data);
+                    let data = JSON.parse(event.data);
+                    console.log(data);
+                    this.downEvents = data;
                 }, false);
 
                 es.addEventListener('failure', event => {
@@ -223,7 +237,7 @@
                 }
             },
             colCount: function(){
-                return Object.keys(this.bets).length;
+                return Object.keys(this.matches).length;
             },
             colCountFailure: function(){
                 return Object.keys(this.failure).length;
