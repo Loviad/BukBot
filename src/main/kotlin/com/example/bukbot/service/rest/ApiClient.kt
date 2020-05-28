@@ -1,6 +1,7 @@
 package com.example.bukbot.service.rest
 
 import com.example.bukbot.BukBotApplication.Companion.backgroundTaskDispatcher
+import com.example.bukbot.BukBotApplication.Companion.orderedBackgroundTaskDispatcher
 import com.example.bukbot.controller.placeBet.BetItemValueRepository
 import com.example.bukbot.controller.vodds.VoddsController
 import com.example.bukbot.data.api.Balance
@@ -50,7 +51,7 @@ class ApiClient: CoroutineScope {
             ApiThreadFactory()
     ).asCoroutineDispatcher()
 
-    private val backDispatcher = backgroundTaskDispatcher
+    private val backDispatcher = orderedBackgroundTaskDispatcher
 
     fun getOpenedBets() {
         launch(backDispatcher) {
@@ -291,5 +292,14 @@ class ApiClient: CoroutineScope {
         } catch (e: Exception) {
             Unit
         }
+    }
+
+    @Throws(IOException::class)
+    fun getOddInfo() {
+        val body = FormBody.Builder()
+                .add("username", "unity_group170")
+                .add("accessToken", getAccessToken()!!)
+                .add("id", "unity_fake_group57_ibc1|unity_fake_group57_ibc1|1571831471177")
+                .build()
     }
 }

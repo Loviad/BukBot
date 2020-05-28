@@ -1,20 +1,22 @@
 package com.example.bukbot.utils
 
 import org.apache.commons.codec.binary.Hex
+import java.math.BigDecimal
+import java.math.RoundingMode
 import java.security.MessageDigest
 import java.text.DateFormat
 import java.text.SimpleDateFormat
 import java.util.*
-import java.util.TimeZone
-
 
 
 fun getAccessToken(): String? {
-    val username = "unity_group153"
-    val password = "71Ul4aeCkh"
+    val username = "unity_group170"
+    val password = "52fsPDeBn8"
     val builder: StringBuilder
     var dateFormat: DateFormat
     val time = Date()
+
+    // combine the input fields
 
     // combine the input fields
     builder = StringBuilder()
@@ -32,14 +34,20 @@ fun getAccessToken(): String? {
     val date2 = dateFormat.format(time)
     builder.append(date2)
 
-    try {
+    return try {
         val bytesOfMessage = builder.toString().toByteArray(charset("utf-8"))
         val md = MessageDigest.getInstance("MD5")
         val theDigest = md.digest(bytesOfMessage)
-
-        return String(Hex.encodeHex(theDigest))
+        String(Hex.encodeHex(theDigest))
     } catch (e: Exception) {
-        return null
+        null
     }
 
+}
+
+fun Double.round(places: Int): Double {
+    require(places >= 0)
+    var bd = BigDecimal(this.toString())
+    bd = bd.setScale(places, RoundingMode.HALF_UP)
+    return bd.toDouble()
 }

@@ -1,5 +1,6 @@
 package com.example.bukbot.data.oddsList
 
+import com.example.bukbot.utils.round
 import jayeson.lib.feed.api.LBType
 import jayeson.lib.feed.api.OddFormat
 import jayeson.lib.feed.api.OddType
@@ -46,14 +47,26 @@ class  PinOdd {
         }
 
     private var tymeTypeProp: TimeType
-    val tymeType: TimeType
+    val tymeType: String
         get() {
-            return tymeTypeProp
+            return tymeTypeProp.name()
         }
 
+    private val pivotValueProp: Double
     val pivotValue: Double
-    var startRateOver: Double = 0.0
-    var startRateUnder: Double = 0.0
+        get() {
+            return pivotValueProp
+        }
+    private var startRateOverProp: Double = 0.0
+    val startRateOver: Double
+        get() {
+            return startRateOverProp.round(3)
+        }
+    private var startRateUnderProp: Double = 0.0
+    val startRateUnder: Double
+        get() {
+            return startRateUnderProp.round(3)
+        }
 
     val lblType: LBType
 
@@ -67,9 +80,9 @@ class  PinOdd {
         this.pivotBiasProp = item.pivotBias()
         this.oddFormatProp = item.oddFormat()
         this.tymeTypeProp = item.timeType()
-        this.startRateOver = item.rateOver().toDouble()
-        this.startRateUnder = item.rateUnder().toDouble()
-        this.pivotValue = item.pivotValue().toDouble()
+        this.startRateOverProp = item.rateOver().toDouble()
+        this.startRateUnderProp = item.rateUnder().toDouble()
+        this.pivotValueProp = item.pivotValue().toDouble()
         this.lblType = item.lbType()
     }
 
@@ -81,7 +94,7 @@ class  PinOdd {
         result = 31 * result + pivotBias.hashCode()
         result = 31 * result + oddFormat.hashCode()
         result = 31 * result + tymeType.hashCode()
-        result = 31 * result + pivotValue.hashCode()
+        result = 31 * result + pivotValueProp.hashCode()
         result = 31 * result + lblType.hashCode()
         return result
     }

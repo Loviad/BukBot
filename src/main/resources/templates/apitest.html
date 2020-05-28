@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:v-bind="http://www.w3.org/1999/xhtml">
+
+<head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no"/>
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8"/>
+
+    <title>My first BootstrapVue app</title>
+
+    <!-- Required Stylesheets -->
+    <link
+            type="text/css"
+            rel="stylesheet"
+            th:href="@{assets/my/bootstrap.min.css}"
+    />
+    <link
+            type="text/css"
+            rel="stylesheet"
+            th:href="@{assets/my/bootstrap-vue.min.css}"
+    />
+    <link rel="stylesheet" th:href="@{assets/libs/css/style.css}" />
+    <link rel="stylesheet" th:href="@{assets/vendor/fonts/fontawesome/css/fontawesome-all.css}" />
+    <link rel="stylesheet" th:href="@{assets/vendor/fonts/flag-icon-css/flag-icon.min.css}" />
+
+    <!-- Required scripts -->
+    <script th:src="@{assets/libs/js/axios.min.js}"></script>
+    <script th:src="@{assets/my/vue.min.js}"></script>
+    <script th:src="@{assets/my/bootstrap-vue.min.js}"></script>
+</head>
+
+<body>
+<div id="contents">
+    <!-- ============================================================== -->
+    <!-- end left sidebar -->
+    <!-- ============================================================== -->
+    <div th:replace="~{menu_template :: menu}"></div>
+    <!-- ============================================================== -->
+    <!-- end left sidebar -->
+    <!-- ============================================================== -->
+
+    <!-- ============================================================== -->
+    <!-- main wrapper -->
+    <!-- ============================================================== -->
+    <div class="dashboard-wrapper">
+        <div class="container-fluid  dashboard-content">
+            <div class="col-sm-12">
+
+                <div th:replace="~{menu_template :: state}"></div>
+
+                <b-row >
+                    <div class="col-12 col-sm-6 col-md-3">
+                        <div class="info-box mb-3">
+                            <span class="info-box-icon bg-danger elevation-1"><i class="fas fa-thumbs-up"></i></span>
+
+                            <div class="info-box-content">
+                                <span class="info-box-text">Likes</span>
+                                <span class="info-box-number">41,410</span>
+                            </div>
+                            <!-- /.info-box-content -->
+                        </div>
+                        <!-- /.info-box -->
+                    </div>
+                </b-row>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================== -->
+    <!-- end main wrapper -->
+    <!-- ============================================================== -->
+
+</div>
+<script th:inline="javascript">
+    const axiosConfig = {
+        headers: {
+        "content-Type": "application/x-www-form-urlencoded",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3"
+        },
+        credentials: "same-origin"
+    };
+
+    var app = new Vue({
+        el: '#contents',
+        data: {
+            id: /*[[${id}]]*/,
+            balance: '-',
+            hash: /*[[${_csrf.token}]]*/,
+            parsStateValue: {
+               class: /*[[${stateParse}]]*/,
+               spinVisible: false
+            },
+            bettingStateValue: {
+               class: /*[[${stateBetting}]]*/,
+               spinVisible: false
+            },
+            bets: [ ],
+            failure: [ ],
+            matches: [ ],
+            currentOdds: [ ],
+            downEvents: [ ]
+        },
+        methods: {
+            parseStateClick() {
+                this.parsStateValue.spinVisible = true;
+                axios.post('/command', 'name=switchParse&_csrf='+this.hash, axiosConfig)
+            },
+            bettingStateClick() {
+                this.bettingStateValue.spinVisible = true;
+                axios.post('/command', 'name=switchBetting&_csrf='+this.hash, axiosConfig)
+            },
+            testClick() {
+                if(this.colCount < 10){
+                    this.bets.push({message: 'qwerty', count: this.colCount +1, lp: 'asdfghjklqwert', lk: 55});
+                } else {
+                    this.bets.pop();
+                    this.bets.unshift({message: 'qwerty', count: this.colCount +1, lp: 'asdfghjklqwert', lk: 55});
+                }
+            }
+        },
+
+        computed: {
+            parsState: function(){
+                if(this.parsStateValue.class){
+                    return "Active"
+                } else {
+                    return "Disabled"
+                }
+            },
+            betState: function(){
+                if(this.bettingStateValue.class){
+                    return "Active"
+                } else {
+                    return "Disabled"
+                }
+            },
+            colCount: function(){
+                return Object.keys(this.matches).length;
+            },
+            colCountFailure: function(){
+                return Object.keys(this.failure).length;
+            }
+        }
+    });
+</script>
+
+</body>
+</html>

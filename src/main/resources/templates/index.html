@@ -13,21 +13,21 @@
     <link
             type="text/css"
             rel="stylesheet"
-            href="assets/my/bootstrap.min.css"
+            th:href="@{assets/my/bootstrap.min.css}"
     />
     <link
             type="text/css"
             rel="stylesheet"
-            href="assets/my/bootstrap-vue.min.css"
+            th:href="@{assets/my/bootstrap-vue.min.css}"
     />
-    <link rel="stylesheet" href="assets/libs/css/style.css">
-    <link rel="stylesheet" href="assets/vendor/fonts/fontawesome/css/fontawesome-all.css">
-    <link rel="stylesheet" href="assets/vendor/fonts/flag-icon-css/flag-icon.min.css">
+    <link rel="stylesheet" th:href="@{assets/libs/css/style.css}">
+    <link rel="stylesheet" th:href="@{assets/vendor/fonts/fontawesome/css/fontawesome-all.css}">
+    <link rel="stylesheet" th:href="@{assets/vendor/fonts/flag-icon-css/flag-icon.min.css}">
 
     <!-- Required scripts -->
-    <script src="assets/libs/js/axios.min.js"></script>
-    <script src="assets/my/vue.min.js"></script>
-    <script src="assets/my/bootstrap-vue.min.js"></script>
+    <script th:src="@{assets/libs/js/axios.min.js}"></script>
+    <script th:src="@{assets/my/vue.min.js}"></script>
+    <script th:src="@{assets/my/bootstrap-vue.min.js}"></script>
 </head>
 
 <body>
@@ -35,16 +35,7 @@
     <!-- ============================================================== -->
     <!-- end left sidebar -->
     <!-- ============================================================== -->
-    <div class="nav-left-sidebar sidebar-dark">
-        <b-nav vertical pills>
-            <b-navbar-brand href="#">BukBot</b-navbar-brand>
-            <b-nav-item href="/"><i class="fas fa-desktop"></i>Главная</b-nav-item>
-            <b-nav-item v-b-toggle.collapse-1 variant="dark"><i class="fas fa-chart-area"></i>Статистика</b-nav-item>
-            <b-collapse id="collapse-1" class="submenu">
-                <b-nav-item href="/valuebets">Valuebets</b-nav-item>
-            </b-collapse>
-        </b-nav>
-    </div>
+    <div th:replace="~{menu_template :: menu}"></div>
     <!-- ============================================================== -->
     <!-- end left sidebar -->
     <!-- ============================================================== -->
@@ -55,23 +46,8 @@
     <div class="dashboard-wrapper">
         <div class="container-fluid  dashboard-content">
             <div class="col-sm-12">
-                <b-row class="text-right mb-10">
-                    <b-button class="mr-4" v-on:click="parseStateClick()"
-                              v-bind:variant="[ parsStateValue.class ?  'success' : 'secondary']">
-                        <b-spinner v-if="this.parsStateValue.spinVisible" small type="grow"></b-spinner>
-                        Парсинг: {{ parsState }}
-                    </b-button>
 
-                    <b-button class="mr-4" v-on:click="bettingStateClick()"
-                              v-bind:variant="[ bettingStateValue.class ?  'success' : 'secondary']">
-                        <b-spinner v-if="this.bettingStateValue.spinVisible" small type="grow"></b-spinner>
-                        Установка ставок: {{ betState }}
-                    </b-button>
-                    <b-button class="mr-4" v-on:click="testClick()">
-                        Установка ставок: {{ betState }}
-                    </b-button>
-                    <h2 style="position: absolute; right: 0px; color: #377bff;">Баланс: {{ balance }} </h2>
-                </b-row>
+                <div th:replace="~{menu_template :: state}"></div>
 
                 <b-row >
                     <div class="col shadow-sm p-3 mt-5 mr-5 mb-5 bg-light rounded">
@@ -96,10 +72,23 @@
                 </b-row>
 
                 <b-row class="shadow-sm p-3 bg-light rounded">
-
+                    <div class="col mt-5 mb-5 rounded">
+                        <div>{{ colCount }}</div>
+                        <div v-for="item in currentOdds" class="row shadow p-3 mb-2 ml-2 mr-2 bg-white rounded">
+                            <div class="col p-1">{{ item.matchId }}</div>
+                            <div class="col p-1">{{ item.eventId }}</div>
+                            <div class="col p-1">{{ item.pivotType }}</div>
+                            <div class="col p-1">{{ item.oddType }}</div>
+                            <div class="col p-1">{{ item.pivotBias }}</div>
+                            <div class="col p-1">{{ item.oddFormat }}</div>
+                            <div class="col p-1">{{ item.tymeType }}</div>
+                            <div class="col p-1">{{ item.pivotValue }}</div>
+                            <div class="col p-1">{{ item.startRateOver }}</div>
+                            <div class="col p-1">{{ item.startRateUnder }}</div>
+                            <div class="col p-1">{{ item.lblType }}</div>
+                        </div>
+                    </div>
                 </b-row>
-
-
             </div>
         </div>
     </div>
@@ -135,6 +124,7 @@
             bets: [ ],
             failure: [ ],
             matches: [ ],
+            currentOdds: [ ],
             downEvents: [ ]
         },
         created() {
@@ -167,7 +157,7 @@
                 es.addEventListener('oddsInsert', event => {
                 console.log(event.data);
                     let data = JSON.parse(event.data);
-                    console.log(data);
+                    this.currentOdds = data;
                 }, false);
 
                 es.addEventListener('pinDownEvent', event => {
@@ -237,16 +227,13 @@
                 }
             },
             colCount: function(){
-                return Object.keys(this.matches).length;
+                return Object.keys(this.currentOdds).length;
             },
             colCountFailure: function(){
                 return Object.keys(this.failure).length;
             }
         }
     });
-
-
-
 </script>
 </body>
 </html> 

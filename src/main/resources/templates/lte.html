@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:v-bind="http://www.w3.org/1999/xhtml"
+      xmlns:v-on="http://www.w3.org/1999/xhtml">
+<head th:replace="~{lte_template :: head}"></head>
+
+<div th:include="~{lte_template :: menu}"></div>
+
+<!-- jQuery -->
+<script th:src="@{lte/plugins/jquery/jquery.min.js}"></script>
+<!-- Bootstrap 4 -->
+<script th:src="@{lte/plugins/bootstrap/js/bootstrap.bundle.min.js}"></script>
+<!-- AdminLTE App -->
+<script th:src="@{lte/dist/js/adminlte.min.js}"></script>
+<!-- AdminLTE for demo purposes -->
+<script th:src="@{lte/dist/js/demo.js}"></script>
+<script th:inline="javascript">
+    const axiosConfig = {
+        headers: {
+        "content-Type": "application/x-www-form-urlencoded",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3"
+        },
+        credentials: "same-origin"
+    };
+
+    var app = new Vue({
+        el: '#contents',
+        data: {
+            id: /*[[${id}]]*/,
+            balance: '-',
+            hash: /*[[${_csrf.token}]]*/,
+            parsStateValue: {
+               class: /*[[${stateParse}]]*/,
+               spinVisible: false
+            },
+            bettingStateValue: {
+               class: /*[[${stateBetting}]]*/,
+               spinVisible: false
+            }
+        },
+        created() {
+            this.setupStream();
+        },
+        methods: {
+            setupStream() {
+
+                let es = new EventSource('../data_listen/' + String(this.id));
+
+                es.addEventListener('systemState', event => {
+                    let data = JSON.parse(event.data);
+                    this.parsStateValue.class = data.stateParser;
+                    this.parsStateValue.spinVisible = false;
+                    this.bettingStateValue.class = data.stateBetting;
+                    this.bettingStateValue.spinVisible = false;
+                }, false);
+
+                es.addEventListener('balance', event => {
+                    let data = JSON.parse(event.data);
+                    this.parsStateValue.class = data.balance;
+                }, false);
+
+                es.addEventListener('placeBet', event => {
+                    let data = JSON.parse(event.data);
+                    if(this.colCount < 10){
+                        this.bets.push(data);
+                     } else {
+                        this.bets.pop();
+                        this.bets.unshift(data);
+                    }
+                }, false);
+
+                es.addEventListener('error', event => {
+                }, false);
+            },
+            parseStateClick() {
+                this.parsStateValue.spinVisible = true;
+                axios.post('/command', 'name=switchParse&_csrf='+this.hash, axiosConfig)
+            },
+            bettingStateClick() {
+                this.bettingStateValue.spinVisible = true;
+                axios.post('/command', 'name=switchBetting&_csrf='+this.hash, axiosConfig)
+            }
+        },
+
+        computed: {
+            parsState: function(){
+                if(this.parsStateValue.class){
+                    return "Active"
+                } else {
+                    return "Disabled"
+                }
+            },
+            betState: function(){
+                if(this.bettingStateValue.class){
+                    return "Active"
+                } else {
+                    return "Disabled"
+                }
+            }
+        }
+    });
+
+</script>
+</body>
+</html>

@@ -18,14 +18,14 @@ class VoddsEventHandler(val controller: VoddsController): DeltaEventHandler<Socc
 //    }
 //
 //    override fun onDeleteMatch(deleteMatch: DeleteMatch<SoccerMatch>?) {
-////        controller.deleteMatches(deleteMatch?.get()?.stream())
+//        controller.deleteMatches(deleteMatch?.get()?.stream())
 //    }
 
     override fun onInsertOdd(insertOdd: InsertOdd<SoccerRecord>?) {
         controller.insertPinOdd(insertOdd?.get()?.stream())
     }
 
-//    override fun onInsertMatch(insertMatch: InsertMatch<IBetMatch>?) {
-//        controller.insertMatches(insertMatch?.get()?.stream())
-//    }
+    override fun onDeleteOdd(deleteOdd: DeleteOdd<SoccerRecord>?) {
+        controller.deleteOdd(deleteOdd?.get()?.stream())
+    }
 }

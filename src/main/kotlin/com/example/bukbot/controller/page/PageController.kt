@@ -107,6 +107,28 @@ class PageController : CoroutineScope,
         return "valuebets"
     }
 
+    @GetMapping("/apitest")
+    fun apiTestPage(model: Model, authentication: Authentication): String {
+        val state = pageInterractor.getSystemState()
+        val balance = voddsInterractor.getBalance()
+        model.addAttribute("id", authentication.name)
+        model.addAttribute("stateParse", state.first)
+        model.addAttribute("stateBetting", state.second)
+        model.addAttribute("balance", balance)
+        return "apitest"
+    }
+
+    @GetMapping("/lte")
+    fun lteTheme(model: Model, authentication: Authentication): String {
+        val state = pageInterractor.getSystemState()
+        val balance = voddsInterractor.getBalance()
+        model.addAttribute("id", authentication.name)
+        model.addAttribute("stateParse", state.first)
+        model.addAttribute("stateBetting", state.second)
+        model.addAttribute("balance", balance)
+        return "lte"
+    }
+
     @GetMapping("/valuebets/{id}")
     fun valuePage(@PathVariable("id") id: String): SseEmitter {
         val emitter = SseEmitter(180_000L)

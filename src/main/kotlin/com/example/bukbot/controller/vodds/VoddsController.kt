@@ -5,6 +5,7 @@ import com.example.bukbot.domain.interactors.vodds.VoddsInterractor
 import com.example.bukbot.service.events.IGettingSnapshotListener
 import com.example.bukbot.service.rest.ApiClient
 import com.example.bukbot.utils.Settings
+import com.example.bukbot.utils.round
 import com.example.bukbot.utils.threadfabrick.VoddsThreadFactory
 import com.loviad.bukbot.utils.BackgroundTaskThreadFactory
 import jayeson.lib.feed.api.IBetRecord
@@ -15,6 +16,7 @@ import jayeson.lib.sports.client.SportsFeedFactory
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.launch
+import org.joda.time.DateTime
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Component
 import java.util.concurrent.Executors
@@ -41,6 +43,11 @@ class VoddsController : CoroutineScope, IGettingSnapshotListener {
 
 
     override val coroutineContext = //backgroundTaskDispatcher
+            Executors.newSingleThreadExecutor(
+                    VoddsThreadFactory()
+            ).asCoroutineDispatcher()
+
+    private val updateDispatcher = //backgroundTaskDispatcher
             Executors.newSingleThreadExecutor(
                     VoddsThreadFactory()
             ).asCoroutineDispatcher()
@@ -80,25 +87,37 @@ class VoddsController : CoroutineScope, IGettingSnapshotListener {
 //        voddsInterractor.changeMatchList(matchList)
 //    }
 
-//    fun deleteMatches(stream: Stream<SoccerMatch>?) = launch {
+//    fun deleteMatches(stream: Stream<SoccerMatch>?) = launch(updateDispatcher) {
 //        if(stream == null) return@launch
-//        stream.forEach {
-//            matchList.remove("${it.id()}_"+it.meta()["AGGREGATE_KEY"])
+//        stream.forEach {match ->
+//            pinOddList.forEach{ map ->
+//                if (map.value.matchId == match.id()){
+//                    pinOddList.remove(map.key)
+//                    pinDownEvent.removeIf {
+//                        it.contains(match.id())
+//                    }
+//                }
+//            }
 //        }
-//        voddsInterractor.changeMatchList(matchList)
+//        voddsInterractor.changePinList(pinOddList)
+//        voddsInterractor.findPinDownEvent(pinDownEvent)
 //    }
 
 
-    fun updateOdd(stream: Stream<SoccerRecord>?) = launch(backgroundTaskDispatcher){
+    fun updateOdd(stream: Stream<SoccerRecord>?) = launch(updateDispatcher){
         if(stream == null) return@launch
         var change = false
         stream.forEach { record ->
-            if (record.source() == "PIN88" && record.pivotType() == PivotType.HDP){
+            if (record.source() == "CROWN" && record.pivotType() == PivotType.HDP){
                 pinOddList[stringHash(record).toString()]?.let {
-                    if ((it.startRateOver - record.rateOver().toDouble() > 0.05) || (it.startRateUnder - record.rateUnder().toDouble() > 0.05)){
+                                                                         //0.05                                                         //0.05
+                    if ((it.startRateOver - record.rateOver().toDouble() > 0.01) || (it.startRateUnder - record.rateUnder().toDouble() > 0.01)){
                         change = true
+                        if (pinDownEvent.size > 9) {
+                            pinDownEvent.removeAt(0)
+                        }
                         pinDownEvent.add(
-                                "${it.matchId}_${it.eventId}_${it.pivotValue}"
+                                "${it.matchId}_${it.eventId}_${it.pivotValue} : original value = ${record.rateOver().toDouble().round(3)}"
                         )
                     }
                 }
@@ -109,11 +128,11 @@ class VoddsController : CoroutineScope, IGettingSnapshotListener {
         }
     }
 
-    fun insertPinOdd(stream: Stream<SoccerRecord>?) = launch {
+    fun insertPinOdd(stream: Stream<SoccerRecord>?) = launch(updateDispatcher) {
         if(stream == null) return@launch
         var change = false
         stream.forEach {
-            if (it.source() == "PIN88" && it.pivotType() == PivotType.HDP){
+            if (it.source() == "CROWN" && it.pivotType() == PivotType.HDP){
                 change = true
                 val hash = stringHash(it).toString()
                 pinOddList[hash]?.let {
@@ -124,6 +143,19 @@ class VoddsController : CoroutineScope, IGettingSnapshotListener {
             }
         }
         if (change) voddsInterractor.changePinList(pinOddList)
+        println("${pinOddList.size}")
+    }
+
+
+    fun deleteOdd(stream: Stream<SoccerRecord>?)= launch(updateDispatcher) {
+        if(stream == null) return@launch
+        stream.forEach { record ->
+            if (record.source() == "CROWN" && record.pivotType() == PivotType.HDP){
+                pinOddList.remove(stringHash(record).toString())
+            }
+        }
+        voddsInterractor.changePinList(pinOddList)
+        println("${pinOddList.size}")
     }
 
     private fun stringHash(item: SoccerRecord): Int{
@@ -138,7 +170,6 @@ class VoddsController : CoroutineScope, IGettingSnapshotListener {
         result = 31 * result + item.lbType().hashCode()
         return result
     }
-
 
     enum class TargetPivot {
         OVER,

@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+
+<div class="nav-left-sidebar sidebar-dark" th:fragment="menu">
+    <b-nav vertical pills>
+        <b-navbar-brand href="#">BukBot</b-navbar-brand>
+        <b-nav-item href="/"><i class="fas fa-desktop"></i>Главная</b-nav-item>
+        <b-nav-item v-b-toggle.collapse-1 variant="dark"><i class="fas fa-chart-area"></i>Статистика</b-nav-item>
+        <b-collapse id="collapse-1" class="submenu">
+            <b-nav-item href="/valuebets">Ставки</b-nav-item>
+        </b-collapse>
+        <b-nav-item v-b-toggle.collapse-2 variant="dark"><i class="fas fa-wrench"></i>Служебное</b-nav-item>
+        <b-collapse id="collapse-2" class="submenu">
+            <b-nav-item href="/apitest">Тест API</b-nav-item>
+        </b-collapse>
+    </b-nav>
+</div>
+
+
+<b-row class="text-right mb-10" th:fragment="state">
+    <b-button class="mr-4" v-on:click="parseStateClick()"
+              v-bind:variant="[ parsStateValue.class ?  'success' : 'secondary']">
+        <b-spinner v-if="this.parsStateValue.spinVisible" small type="grow"></b-spinner>
+        Парсинг: {{ parsState }}
+    </b-button>
+
+    <b-button class="mr-4" v-on:click="bettingStateClick()"
+              v-bind:variant="[ bettingStateValue.class ?  'success' : 'secondary']">
+        <b-spinner v-if="this.bettingStateValue.spinVisible" small type="grow"></b-spinner>
+        Установка ставок: {{ betState }}
+    </b-button>
+    <b-button class="mr-4" v-on:click="testClick()">
+        Установка ставок: {{ betState }}
+    </b-button>
+    <h2 style="position: absolute; right: 0px; color: #377bff;">Баланс: {{ balance }} </h2>
+</b-row>
+
+
+</body>
+</html>

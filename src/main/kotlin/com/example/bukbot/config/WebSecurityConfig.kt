@@ -10,11 +10,6 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity
 import org.springframework.security.crypto.password.NoOpPasswordEncoder
 
-
-
-
-
-
 @Configuration
 @EnableWebSecurity
 class WebSecurityConfig: WebSecurityConfigurerAdapter() {
@@ -28,7 +23,8 @@ class WebSecurityConfig: WebSecurityConfigurerAdapter() {
                 .antMatchers(
                         "/login",
                         "/whait_auth/**",
-                        "/assets/**"
+                        "/assets/**",
+                        "/lte/**"
                 ).permitAll()
                 .anyRequest().authenticated()
                 .and()
