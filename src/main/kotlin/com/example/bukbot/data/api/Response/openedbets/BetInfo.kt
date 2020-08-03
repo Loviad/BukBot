@@ -1,0 +1,32 @@
+package com.example.bukbot.data.api.Response.openedbets
+
+class BetInfo(
+        val id: String?,
+        val eventId: String?,
+        val homeTeam: String?,
+        val awayTeam: String?,
+        val betStake: Double?,
+        val returnAmount: Double?,
+        val pivotBias: String?,
+        val serverPivot: Double?,
+        val league: String?,
+        val serverOdd: Double?,
+        val statementTime: String?,
+        val statementTimeZone: String?,
+        val lbType: String?,
+        val betHostPoint: Int?,
+        val betGuestPoint: Int?,
+        val halfTimeHostPoint: Int?,
+        val fullTimeHostPoint: Int?,
+        val halfTimeGuestPoint: Int?,
+        val fullTimeGuestPoint: Int?,
+        val originalId: String?,
+        val settledTime: String?,
+        val normalizedPivotValue: Double?,
+        val betTime: String?,
+        val sportbook: String?,
+        val eventStart: String?,
+        val betStatus: Int?,
+        val oddType: String?,
+        val targetType: String?
+)

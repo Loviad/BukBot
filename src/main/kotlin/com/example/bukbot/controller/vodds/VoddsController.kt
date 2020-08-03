@@ -1,14 +1,20 @@
 package com.example.bukbot.controller.vodds
 
+import com.example.bukbot.data.SSEModel.Match
+import com.example.bukbot.data.SSEModel.PlacingBet
+import com.example.bukbot.data.database.Dao.PlacedBetDao
 import com.example.bukbot.data.oddsList.PinOdd
+import com.example.bukbot.data.repositories.PlacedBetRepository
 import com.example.bukbot.domain.interactors.vodds.VoddsInterractor
 import com.example.bukbot.service.events.IGettingSnapshotListener
 import com.example.bukbot.service.rest.ApiClient
+import com.example.bukbot.utils.CurrentState
+import com.example.bukbot.utils.DateTimeUtils
 import com.example.bukbot.utils.Settings
 import com.example.bukbot.utils.round
 import com.example.bukbot.utils.threadfabrick.VoddsThreadFactory
 import com.loviad.bukbot.utils.BackgroundTaskThreadFactory
-import jayeson.lib.feed.api.IBetRecord
+import jayeson.lib.feed.api.LBType
 import jayeson.lib.feed.api.twoside.PivotType
 import jayeson.lib.feed.soccer.SoccerMatch
 import jayeson.lib.feed.soccer.SoccerRecord
@@ -17,6 +23,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.launch
 import org.joda.time.DateTime
+import org.joda.time.DateTimeZone
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Component
 import java.util.concurrent.Executors
@@ -25,6 +32,7 @@ import java.util.concurrent.ThreadPoolExecutor
 import java.util.concurrent.TimeUnit
 import java.util.stream.Stream
 import javax.annotation.PostConstruct
+import kotlin.streams.toList
 
 
 @Component
@@ -32,14 +40,23 @@ class VoddsController : CoroutineScope, IGettingSnapshotListener {
 
     @Autowired
     private lateinit var api: ApiClient
+
     @Autowired
     private lateinit var settings: Settings
+
+    @Autowired
+    private lateinit var currentState: CurrentState
+
     @Autowired
     private lateinit var voddsInterractor: VoddsInterractor
 
-//    val matchList = HashMap<String, MatchItem>()
+    @Autowired
+    private lateinit var placedBetRepository: PlacedBetRepository
+
+    val matchList = HashMap<String, Match>()
     val pinOddList = HashMap<String, PinOdd>() // MatchId | PinOdd
-    val pinDownEvent = ArrayList<String>()
+
+    val bettingEvents = HashMap<String, Long>()
 
 
     override val coroutineContext = //backgroundTaskDispatcher
@@ -70,6 +87,9 @@ class VoddsController : CoroutineScope, IGettingSnapshotListener {
 
 
     fun start() = launch {
+        placedBetRepository.findAllBets().map {
+            bettingEvents[it.matchIdent] = it.startTime
+        }
         val factory = SportsFeedFactory()
         val client = factory.createFromConfigFile("/home/sergey/projects/BukBot/build/resources/main/conf/libSportConfig.json")
         val noFilterIBetMatchFeedView = client.view(SoccerMatch::class.java)
@@ -79,86 +99,122 @@ class VoddsController : CoroutineScope, IGettingSnapshotListener {
         voddsInterractor.startParsing()
     }
 
-//    fun insertMatches(stream: Stream<SoccerMatch>?) = launch {
-//        if(stream == null) return@launch
-//        stream.forEach {
-//            matchList["${it.id()}_"+it.meta()["AGGREGATE_KEY"]] = MatchItem(it)
-//        }
+    fun insertMatches(stream: Stream<SoccerMatch>?) = launch(updateDispatcher) {
+        if (stream == null) return@launch
+        println("INSERT_MATCH")
+        stream.forEach {
+            matchList[it.id()] = Match(it.id(), it.host(), it.guest(), it.league(), it.startTime())
+        }
+        val now = DateTime.now().millis / 1000L
+        val k = bettingEvents.filter {
+            it.value < now
+        }.map {
+            it.key
+        }
+        k.forEach {
+            bettingEvents.remove(it)
+        }
+        placedBetRepository.deleteOldMatches(now)
+
 //        voddsInterractor.changeMatchList(matchList)
-//    }
+    }
 
-//    fun deleteMatches(stream: Stream<SoccerMatch>?) = launch(updateDispatcher) {
-//        if(stream == null) return@launch
-//        stream.forEach {match ->
-//            pinOddList.forEach{ map ->
-//                if (map.value.matchId == match.id()){
-//                    pinOddList.remove(map.key)
-//                    pinDownEvent.removeIf {
-//                        it.contains(match.id())
-//                    }
-//                }
-//            }
+    fun deleteMatches(stream: Stream<SoccerMatch>?) = launch(updateDispatcher) {
+        if (stream == null) return@launch
+        println("DELETE_MATCH")
+//        stream.forEach { match ->
+//            matchList.remove(match.id())
 //        }
-//        voddsInterractor.changePinList(pinOddList)
-//        voddsInterractor.findPinDownEvent(pinDownEvent)
-//    }
+
+//        voddsInterractor.changeMatchList(matchList)
+    }
 
 
-    fun updateOdd(stream: Stream<SoccerRecord>?) = launch(updateDispatcher){
-        if(stream == null) return@launch
-        var change = false
-        stream.forEach { record ->
-            if (record.source() == "CROWN" && record.pivotType() == PivotType.HDP){
-                pinOddList[stringHash(record).toString()]?.let {
-                                                                         //0.05                                                         //0.05
-                    if ((it.startRateOver - record.rateOver().toDouble() > 0.01) || (it.startRateUnder - record.rateUnder().toDouble() > 0.01)){
-                        change = true
-                        if (pinDownEvent.size > 9) {
-                            pinDownEvent.removeAt(0)
+    fun updateOdd(stream: Stream<SoccerRecord>?) = launch(updateDispatcher) {
+        if (stream == null || !currentState.canBetting || !settings.getBetPlacing()) return@launch
+        var changeRate: Boolean
+        println("UPDATE")
+        stream.toList().forEach { record ->
+            if (bettingEvents["${record.matchId()}_${record.pivotType().name}_${record.timeType().name()}"] == null) {
+                if (record.source() == "PIN88" && record.lbType() == LBType.BACK && (record.pivotType() == PivotType.HDP || record.pivotType() == PivotType.TOTAL)) {
+                    pinOddList[stringHash(record).toString()]?.let {
+
+                        changeRate = false                                               //0.05                                                         //0.05
+                        if ((it.startRateOver - record.rateOver().toDouble()).round(3) >= settings.deltaPIN88) {
+                            changeRate = true
+                            it.targetPivot = TargetPivot.OVER
+                            it.endRateOver = record.rateOver().toDouble().round(3)
                         }
-                        pinDownEvent.add(
-                                "${it.matchId}_${it.eventId}_${it.pivotValue} : original value = ${record.rateOver().toDouble().round(3)}"
-                        )
+
+                        if (
+                                (it.startRateUnder - record.rateUnder().toDouble()).round(3) >= settings.deltaPIN88 &&
+                                ((it.startRateOver - record.rateOver().toDouble()).round(3) < (it.startRateUnder - record.rateUnder().toDouble()).round(3) || !changeRate)
+                        ) {
+                            changeRate = true
+                            it.targetPivot = TargetPivot.UNDER
+                            it.endRateOver = record.rateUnder().toDouble().round(3)
+                        }
+                        if (
+                                changeRate &&
+                                settings.getBetPlacing()
+                        ) {
+                            api.placeBetTicket(
+                                    it
+                            ) { source, currentOdd, idBet ->
+                                bettingEvents["${record.matchId()}_${record.pivotType().name}_${record.timeType().name()}"] = matchList[record.matchId()]?.startTime
+                                        ?: -1
+                                placedBetRepository.savePlacedBet(
+                                        PlacedBetDao(
+                                                "${it.matchId}_${it.pivotType.name}_${it.tymeType}",
+                                                it.endRateOver,
+                                                source,
+                                                currentOdd.toDouble().round(3),
+                                                matchList[it.matchId]?.startTime ?:-1,
+                                                idBet
+                                        )
+                                )
+                            }.join()
+                        }
+
                     }
                 }
             }
         }
-        if (change) {
-            voddsInterractor.findPinDownEvent(pinDownEvent)
-        }
     }
 
     fun insertPinOdd(stream: Stream<SoccerRecord>?) = launch(updateDispatcher) {
-        if(stream == null) return@launch
-        var change = false
+        if (stream == null) return@launch
         stream.forEach {
-            if (it.source() == "CROWN" && it.pivotType() == PivotType.HDP){
-                change = true
+            if (it.source() == "PIN88" && (it.pivotType() == PivotType.HDP || it.pivotType() == PivotType.TOTAL)) {
                 val hash = stringHash(it).toString()
                 pinOddList[hash]?.let {
 
-                } ?: run{
+                } ?: run {
                     pinOddList[hash] = PinOdd(it)
                 }
             }
         }
-        if (change) voddsInterractor.changePinList(pinOddList)
-        println("${pinOddList.size}")
+//        if (change) voddsInterractor.changePinList(pinOddList)
+//        println("${pinOddList.size}")
     }
 
 
-    fun deleteOdd(stream: Stream<SoccerRecord>?)= launch(updateDispatcher) {
-        if(stream == null) return@launch
+    fun deleteOdd(stream: Stream<SoccerRecord>?) = launch(updateDispatcher) {
+        if (stream == null) return@launch
         stream.forEach { record ->
-            if (record.source() == "CROWN" && record.pivotType() == PivotType.HDP){
+            if (record.source() == "PIN88" && (record.pivotType() == PivotType.HDP || record.pivotType() == PivotType.TOTAL)) {
                 pinOddList.remove(stringHash(record).toString())
             }
         }
-        voddsInterractor.changePinList(pinOddList)
-        println("${pinOddList.size}")
+//        voddsInterractor.changePinList(pinOddList)
+//        println("${pinOddList.size}")
     }
 
-    private fun stringHash(item: SoccerRecord): Int{
+    fun sendBetEvent(bet: PlacingBet) = launch(backgroundTaskDispatcher) {
+        voddsInterractor.placeEvent(bet)
+    }
+
+    private fun stringHash(item: SoccerRecord): Int {
         var result = item.matchId().hashCode()
         result = 31 * result + item.eventId().hashCode()
         result = 31 * result + item.pivotType().hashCode()

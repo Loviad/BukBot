@@ -2,8 +2,8 @@ package com.example.bukbot.utils.threadfabrick
 
 import java.util.concurrent.ThreadFactory
 
-class VoddsThreadFactory : ThreadFactory {
+class StateThreadFactory : ThreadFactory {
     override fun newThread(r: Runnable?): Thread {
-        return Thread(r, "UpdateVoddsThreadFactory")
+        return Thread(r, "StateThreadFactory")
     }
 }

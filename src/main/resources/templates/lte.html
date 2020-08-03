@@ -1,104 +1,129 @@
 <!DOCTYPE html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:v-bind="http://www.w3.org/1999/xhtml"
-      xmlns:v-on="http://www.w3.org/1999/xhtml">
+<div lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:v-bind="http://www.w3.org/1999/xhtml"
+     xmlns:v-on="http://www.w3.org/1999/xhtml">
 <head th:replace="~{lte_template :: head}"></head>
+<body class="hold-transition sidebar-mini layout-fixed">
+<div class="wrapper">
+    <div th:include="~{lte_template :: menu}"></div>
+    <div class="content-wrapper" id="indexPage">
+        <section class="content">
+            <div class="container-fluid">
+                <div class="row">
+                    <div class="col-12 mt-5">
 
-<div th:include="~{lte_template :: menu}"></div>
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 class="card-title">Открытые ставки</h3>
+                                <div class="card-tools">
+                                    <button type="button" class="btn btn-tool" data-card-widget="collapse">
+                                        <i class="fas fa-minus"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <!-- /.card-header -->
+                            <div class="card-body">
+                                <table id="example1" class="table table-bordered table-striped">
+                                    <thead>
+                                    <tr>
+                                        <th>Время ставки</th>
+                                        <th>ID</th>
+                                        <th>Дом</th>
+                                        <th>Гости</th>
+                                        <th>Контора</th>
+                                        <th>Время матча</th>
+                                        <th>Тип ставки</th>
+                                        <th>Цель ставки</th>
+                                        <th>Смещение</th>
+                                        <th>Bias</th>
+                                        <th>Коэффициент</th>
+                                    </tr>
+                                    </thead>
+                                    <tbody>
+                                    <tr  v-for="item in openedBets">
+                                        <td>{{ item.betTime }}</td>
+                                        <td>{{ item.id }}</td>
+                                        <td>{{ item.homeTeam }}</td>
+                                        <td>{{ item.awayTeam }}</td>
+                                        <td>{{ item.sportbook }}</td>
+                                        <td>{{ item.eventStart }}</td>
+                                        <td>{{ item.oddType }}</td>
+                                        <td>{{ item.targetType }}</td>
+                                        <td>{{ item.serverPivot }}</td>
+                                        <td>{{ item.pivotBias }}</td>
+                                        <td>{{ item.serverOdd }}</td>
+                                    </tr>
+                                    </tbody>
+                                    <tfoot>
+                                    <tr>
+                                        <th>Время ставки</th>
+                                        <th>ID</th>
+                                        <th>Дом</th>
+                                        <th>Гости</th>
+                                        <th>Контора</th>
+                                        <th>Время матча</th>
+                                        <th>Тип ставки</th>
+                                        <th>Цель ставки</th>
+                                        <th>Смещение</th>
+                                        <th>Bias</th>
+                                        <th>Коэффициент</th>
+                                    </tr>
+                                    </tfoot>
+                                </table>
+                            </div>
+                            <!-- /.card-body -->
+                        </div>
+                        <!-- /.card -->
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+</div>
 
-<!-- jQuery -->
-<script th:src="@{lte/plugins/jquery/jquery.min.js}"></script>
-<!-- Bootstrap 4 -->
-<script th:src="@{lte/plugins/bootstrap/js/bootstrap.bundle.min.js}"></script>
-<!-- AdminLTE App -->
-<script th:src="@{lte/dist/js/adminlte.min.js}"></script>
-<!-- AdminLTE for demo purposes -->
-<script th:src="@{lte/dist/js/demo.js}"></script>
+
+<div th:include="~{lte_template :: footer}"></div>
 <script th:inline="javascript">
-    const axiosConfig = {
-        headers: {
-        "content-Type": "application/x-www-form-urlencoded",
-        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3"
-        },
-        credentials: "same-origin"
-    };
-
-    var app = new Vue({
-        el: '#contents',
+    var apiApp = new Vue({
+        el: '#indexPage',
         data: {
-            id: /*[[${id}]]*/,
-            balance: '-',
-            hash: /*[[${_csrf.token}]]*/,
-            parsStateValue: {
-               class: /*[[${stateParse}]]*/,
-               spinVisible: false
-            },
-            bettingStateValue: {
-               class: /*[[${stateBetting}]]*/,
-               spinVisible: false
-            }
+            openedBets: /*[[${openedBets}]]*/
         },
         created() {
             this.setupStream();
         },
         methods: {
             setupStream() {
-
-                let es = new EventSource('../data_listen/' + String(this.id));
-
-                es.addEventListener('systemState', event => {
+                base.es.addEventListener('openedBets', event => {
                     let data = JSON.parse(event.data);
-                    this.parsStateValue.class = data.stateParser;
-                    this.parsStateValue.spinVisible = false;
-                    this.bettingStateValue.class = data.stateBetting;
-                    this.bettingStateValue.spinVisible = false;
+                    this.openedBets = data;
                 }, false);
 
-                es.addEventListener('balance', event => {
-                    let data = JSON.parse(event.data);
-                    this.parsStateValue.class = data.balance;
-                }, false);
-
-                es.addEventListener('placeBet', event => {
-                    let data = JSON.parse(event.data);
-                    if(this.colCount < 10){
-                        this.bets.push(data);
-                     } else {
-                        this.bets.pop();
-                        this.bets.unshift(data);
-                    }
-                }, false);
-
-                es.addEventListener('error', event => {
-                }, false);
-            },
-            parseStateClick() {
-                this.parsStateValue.spinVisible = true;
-                axios.post('/command', 'name=switchParse&_csrf='+this.hash, axiosConfig)
-            },
-            bettingStateClick() {
-                this.bettingStateValue.spinVisible = true;
-                axios.post('/command', 'name=switchBetting&_csrf='+this.hash, axiosConfig)
-            }
-        },
-
-        computed: {
-            parsState: function(){
-                if(this.parsStateValue.class){
-                    return "Active"
-                } else {
-                    return "Disabled"
-                }
-            },
-            betState: function(){
-                if(this.bettingStateValue.class){
-                    return "Active"
-                } else {
-                    return "Disabled"
-                }
             }
         }
     });
-
 </script>
+<script th:src="@{lte/plugins/datatables/jquery.dataTables.min.js}"></script>
+<script th:src="@{lte/plugins/datatables-bs4/js/dataTables.bootstrap4.min.js}"></script>
+<script th:src="@{lte/plugins/datatables-responsive/js/dataTables.responsive.min.js}"></script>
+<script th:src="@{lte/plugins/datatables-responsive/js/responsive.bootstrap4.min.js}"></script>
+<script>
+      $(function () {
+        $("#example1").DataTable({
+          "responsive": true,
+          "autoWidth": false,
+        });
+        $('#example2').DataTable({
+          "paging": true,
+          "lengthChange": false,
+          "searching": false,
+          "ordering": true,
+          "info": true,
+          "autoWidth": false,
+          "responsive": true,
+        });
+      });
+</script>
+
 </body>
 </html>
+</div>

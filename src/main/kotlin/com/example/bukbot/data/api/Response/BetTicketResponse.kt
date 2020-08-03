@@ -9,5 +9,6 @@ data class BetTicketResponse(
         val maxStake: Float?,
         val pivotValue: Float?,
         val homeScore: Int?,
-        val awayScore: Int?
+        val awayScore: Int?,
+        var sportBook: String? = null
 )

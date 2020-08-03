@@ -5,6 +5,7 @@ import com.example.bukbot.data.telegram.models.loginInfo.LoginInfo
 import com.example.bukbot.domain.interactors.auth.AuthInterractor
 import com.example.bukbot.domain.interactors.telegram.TelegramInterractor
 import com.example.bukbot.service.auth.events.AuthRequestListener
+import com.example.bukbot.utils.CurrentState
 import org.springframework.dao.EmptyResultDataAccessException
 import org.telegram.telegrambots.bots.DefaultBotOptions
 import org.telegram.telegrambots.bots.TelegramLongPollingBot
@@ -32,6 +33,7 @@ import kotlin.collections.HashMap
 class TelegramBot(
         val authInterractor: AuthInterractor,
         val telegramInterractor: TelegramInterractor,
+        val currentState: CurrentState,
         options: DefaultBotOptions? = null
 ):      TelegramLongPollingBot(options),
         AuthRequestListener{
@@ -42,6 +44,25 @@ class TelegramBot(
         telegramInterractor.findAllApprovedUsers().map {
             approvedUsersList[it.chatId] = it
         }
+        currentState.setTelegramBot(this)
+    }
+
+    fun sendStateMessage(str: String){
+        val sendMessage = SendMessage()
+        sendMessage.enableMarkdown(true)
+        sendMessage.text = str
+        approvedUsersList.forEach{
+            sendMessage.chatId = it.value.chatId
+            try {
+                execute(sendMessage)
+            } catch (e: Exception){
+
+            }
+        }
+    }
+
+    fun getCurrentState(){
+        currentState.sendStateToTelegram()
     }
 
     override fun onUpdateReceived(update: Update?) {
@@ -55,10 +76,8 @@ class TelegramBot(
                         "/login" -> approvedLogin(message, IntRange(it.offset, it.offset + it.length))
                         "/credit" -> getCredit(message)
                         "/balance" -> getBalance(message)
-                        "/setedbets" -> setedBets(message)
-                        "/openedbets" -> openedBets(message)
                         "/status" -> getStatusSystem(message)
-                        "/test" -> testApi()
+                        "/state" -> getCurrentState()
                         else -> sendTxtMessage(message, " Я не понимаю: ${command}")
                     }
                 }
@@ -104,18 +123,6 @@ class TelegramBot(
         } catch (e: Exception){
 
         }
-    }
-
-    fun testApi(){
-        telegramInterractor.test()
-    }
-
-    private fun setedBets(message: Message){
-        telegramInterractor.setedBets()
-    }
-
-    private fun openedBets(message: Message){
-        telegramInterractor.openedBets()
     }
 
     private fun checkApproved(message: Message):Boolean{

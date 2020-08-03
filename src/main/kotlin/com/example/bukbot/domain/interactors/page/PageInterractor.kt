@@ -53,7 +53,9 @@ class PageInterractor: IBetPlacingListener {
         controller = control
     }
 
+    fun getToken() {
 
+    }
 
 
 }

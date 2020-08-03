@@ -51,3 +51,19 @@ fun Double.round(places: Int): Double {
     bd = bd.setScale(places, RoundingMode.HALF_UP)
     return bd.toDouble()
 }
+
+private fun clampMax(value: Int, max: Int): Int {
+    return if (value > max) value else max
+}
+
+private fun clampMin(value: Int, min: Int): Int {
+    return if (value > min) min else value
+}
+
+private fun clampMax(value: Double, max: Double): Double {
+    return if (value > max) value else max
+}
+
+private fun clampMin(value: Double, min: Double): Double {
+    return if (value > min) min else value
+}

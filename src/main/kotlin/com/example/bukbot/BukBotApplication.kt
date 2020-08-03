@@ -2,6 +2,8 @@ package com.example.bukbot
 
 import ch.rasc.sse.eventbus.config.EnableSseEventBus
 import com.example.bukbot.service.telegrambot.TelegramBot
+import com.example.bukbot.utils.threadfabrick.ApiThreadFactory
+import com.example.bukbot.utils.threadfabrick.StateThreadFactory
 import com.loviad.bukbot.utils.BackgroundTaskThreadFactory
 import com.loviad.bukbot.utils.OrderedTaskThreadFactory
 import kotlinx.coroutines.asCoroutineDispatcher
@@ -31,6 +33,14 @@ class BukBotApplication {
 
 		var orderedBackgroundTaskDispatcher = Executors.newSingleThreadExecutor(
 				OrderedTaskThreadFactory("OrderedBackgroundTaskThread")
+		).asCoroutineDispatcher()
+
+		var orderedApiTaskDispatcher = Executors.newSingleThreadExecutor(
+				ApiThreadFactory()
+		).asCoroutineDispatcher()
+
+		var orderedStateTaskDispatcher = Executors.newSingleThreadExecutor(
+				StateThreadFactory()
 		).asCoroutineDispatcher()
 	}
 }

@@ -1,19 +1,14 @@
 package com.example.bukbot.domain.interactors.vodds
 
-import com.example.bukbot.data.SSEModel.MatchCrop
 import com.example.bukbot.data.SSEModel.PlacingBet
+import com.example.bukbot.data.SSEModel.Match
 import com.example.bukbot.data.oddsList.PinOdd
 import com.example.bukbot.service.events.*
-import com.example.bukbot.service.rest.ApiClient
-import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Component
 import java.util.HashMap
 
 @Component
 class VoddsInterractor {
-
-    @Autowired
-    private lateinit var api: ApiClient
 
     private val eventListener = ArrayList<VoddsEvents>()
 
@@ -41,10 +36,6 @@ class VoddsInterractor {
         }
     }
 
-    fun getBalance(){
-        api.getCreditBalance()
-    }
-
     suspend fun onPlaceBet(item: PlacingBet) {
         sendEvents<VoddsPlacingBetListener> {
             it.onPlacingBet(item)
@@ -67,19 +58,19 @@ class VoddsInterractor {
         }
     }
 
-    suspend fun findPinDownEvent(pinDownEvent: ArrayList<String>) {
+    suspend fun placeEvent(bet: PlacingBet) {
         sendEvents<VoddsInsertOddEvent> {
-            it.onPinDownEvent(pinDownEvent as List<String>)
+            it.onPlaceEvent(bet)
         }
     }
 
-//    suspend fun changeMatchList(matchList: HashMap<String, MatchItem>) {
-//        sendEvents<VoddsMatchListUpdate> {
-//            it.onMatchesUpdate(
-//                    matchList.map { match ->
-//                        MatchCrop(match.value.idStr,match.value.host, match.value.guest, match.value.startTime)
-//                    }
-//            )
-//        }
-//    }
+    suspend fun changeMatchList(matchList: HashMap<String, Match>) {
+        sendEvents<VoddsMatchListUpdate> {
+            it.onMatchesUpdate(
+                    matchList.map { match ->
+                        match.value
+                    }
+            )
+        }
+    }
 }

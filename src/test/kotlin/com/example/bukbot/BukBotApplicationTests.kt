@@ -60,9 +60,7 @@ class BukBotApplicationTests {
 	}
 
 	@Test
-	fun token(){
+	fun token() {
 		val k = getAccessToken()!!
-		Assert.isNull(k)
 	}
-
 }

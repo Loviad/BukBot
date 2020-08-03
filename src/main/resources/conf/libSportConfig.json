@@ -2,9 +2,9 @@
   "username":"unity_group170",
   "password":"52fsPDeBn8",
   "uri":"https://sf.stagingunity.com/",
-  "bookFilter":["CROWN"],
-  "oddTypeFilter":["TODAY"],
-  "sportFilter":["SOCCER", "PIN88"],
+  "bookFilter":["PIN88"],
+  "oddTypeFilter":["TODAY", "EARLY"],
+  "sportFilter":["SOCCER"],
   "ttlConfig": {
     "livettl": "5000",
     "todayttl": "30000",

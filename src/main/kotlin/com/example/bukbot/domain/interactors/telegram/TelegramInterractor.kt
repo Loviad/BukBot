@@ -3,6 +3,7 @@ package com.example.bukbot.domain.interactors.telegram
 import com.example.bukbot.data.database.Dao.ApprovedUsers
 import com.example.bukbot.data.repositories.ApprovedUserRepository
 import com.example.bukbot.service.rest.ApiClient
+import com.example.bukbot.utils.CurrentState
 import com.example.bukbot.utils.Settings
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Component
@@ -17,6 +18,8 @@ class TelegramInterractor {
     private lateinit var api: ApiClient
     @Autowired
     private lateinit var settings: Settings
+    @Autowired
+    private lateinit var currentState: CurrentState
 
     fun findAllApprovedUsers(): List<ApprovedUsers> {
         return  approvedUserRepository.findAll()
@@ -27,23 +30,15 @@ class TelegramInterractor {
     }
 
     fun getCredit(): Double{
-        return api.getCreditBalance()
+        return currentState.state.credit
     }
 
     fun test(){
         api.test()
     }
 
-    fun setedBets(){
-        api.getSettBets()
-    }
-
-    fun openedBets(){
-        api.getOpenedBets()
-    }
-
     fun getBalance(){
-        api.getBalance()
+        currentState.state.balance
     }
 
     fun getSystemState(): Pair<Boolean, Boolean>{

@@ -1,10 +1,11 @@
 package com.example.bukbot.controller.page
 
 import com.example.bukbot.BukBotApplication.Companion.backgroundTaskDispatcher
-import com.example.bukbot.data.SSEModel.MatchCrop
-import com.example.bukbot.data.SSEModel.PlacingBet
-import com.example.bukbot.data.SSEModel.SystemStateMessage
+import com.example.bukbot.data.SSEModel.*
+import com.example.bukbot.data.api.Response.openedbets.BetInfo
+import com.example.bukbot.data.database.Dao.SettingsDao
 import com.example.bukbot.data.database.Dao.ValueBetsItem
+import com.example.bukbot.data.models.CurrentBalance
 import com.example.bukbot.data.oddsList.PinOdd
 import com.example.bukbot.data.telegram.models.IMessageData
 import com.example.bukbot.data.telegram.models.loginInfo.LoginInfo
@@ -12,6 +13,10 @@ import com.example.bukbot.domain.interactors.auth.AuthInterractor
 import com.example.bukbot.domain.interactors.page.PageInterractor
 import com.example.bukbot.domain.interactors.vodds.VoddsInterractor
 import com.example.bukbot.service.events.*
+import com.example.bukbot.utils.CurrentState
+import com.example.bukbot.utils.Settings
+import com.example.bukbot.utils.getAccessToken
+import com.example.bukbot.utils.round
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import org.springframework.stereotype.Controller
@@ -26,7 +31,6 @@ import java.io.IOException
 import java.util.*
 import java.util.concurrent.Executors
 import javax.annotation.PostConstruct
-import kotlin.collections.ArrayList
 import kotlin.collections.HashMap
 import kotlin.math.abs
 
@@ -37,7 +41,9 @@ class PageController : CoroutineScope,
         VoddsPlacingBetListener,
         VoddsFailureBetListener,
         VoddsMatchListUpdate,
-        VoddsInsertOddEvent{
+        VoddsInsertOddEvent,
+        ChangeSettingEvents,
+        CurStateEvent{
 
     override val coroutineContext = backgroundTaskDispatcher
 
@@ -53,6 +59,10 @@ class PageController : CoroutineScope,
     private lateinit var pageInterractor: PageInterractor
     @Autowired
     private lateinit var voddsInterractor: VoddsInterractor
+    @Autowired
+    private lateinit var settings: Settings
+    @Autowired
+    private lateinit var currentState: CurrentState
 
 
     private var uid = abs(UUID.randomUUID().hashCode()).toString()
@@ -61,18 +71,25 @@ class PageController : CoroutineScope,
     fun init() {
         voddsInterractor.addEventListener(this)
         pageInterractor.setControl(this)
+        currentState.addEventListener(this)
     }
 
 
     @GetMapping("/")
     fun index(model: Model, authentication: Authentication): String {
         val state = pageInterractor.getSystemState()
-        val balance = voddsInterractor.getBalance()
         model.addAttribute("id", authentication.name)
         model.addAttribute("stateParse", state.first)
         model.addAttribute("stateBetting", state.second)
-        model.addAttribute("balance", balance)
-        return "index"
+        model.addAttribute("balance", currentState.state.balance)
+        model.addAttribute("credit", currentState.state.credit)
+        model.addAttribute("pl", currentState.state.pl)
+        model.addAttribute("memory", currentState.state.memory)
+        currentState.getOpenedBets()?.let {
+            model.addAttribute("openedBets", it)
+        }
+
+        return "lte"
     }
 
     @GetMapping("/login")
@@ -110,23 +127,28 @@ class PageController : CoroutineScope,
     @GetMapping("/apitest")
     fun apiTestPage(model: Model, authentication: Authentication): String {
         val state = pageInterractor.getSystemState()
-        val balance = voddsInterractor.getBalance()
         model.addAttribute("id", authentication.name)
         model.addAttribute("stateParse", state.first)
         model.addAttribute("stateBetting", state.second)
-        model.addAttribute("balance", balance)
-        return "apitest"
-    }
+        model.addAttribute("balance", currentState.state.balance)
+        model.addAttribute("credit", currentState.state.credit)
+        model.addAttribute("pl", currentState.state.pl)
+        model.addAttribute("memory", currentState.state.memory)
 
-    @GetMapping("/lte")
-    fun lteTheme(model: Model, authentication: Authentication): String {
-        val state = pageInterractor.getSystemState()
-        val balance = voddsInterractor.getBalance()
-        model.addAttribute("id", authentication.name)
-        model.addAttribute("stateParse", state.first)
-        model.addAttribute("stateBetting", state.second)
-        model.addAttribute("balance", balance)
-        return "lte"
+        val tempSettings = settings.getSettings()
+
+        model.addAttribute("url", tempSettings.urlApi)
+        model.addAttribute("gold", tempSettings.gold)
+        model.addAttribute("delta", tempSettings.deltaPIN88)
+        model.addAttribute("minKef", tempSettings.minKef)
+        model.addAttribute("minValue", tempSettings.minValue)
+        model.addAttribute("maxValue", tempSettings.maxValue)
+        model.addAttribute("saveBalance", tempSettings.saveBalance)
+        model.addAttribute("balanceBetting", tempSettings.balanceBetting)
+        model.addAttribute("creditBetting", tempSettings.creditBetting)
+        model.addAttribute("autoStartParsing", tempSettings.autoStartParsing)
+        model.addAttribute("autoStartBetting", tempSettings.autoStartBetting)
+        return "apitest"
     }
 
     @GetMapping("/valuebets/{id}")
@@ -144,7 +166,42 @@ class PageController : CoroutineScope,
         when (name) {
             "switchParse" -> switchParse()
             "switchBetting" -> switchBetting()
+            "getToken" -> getToken()
             else -> Unit
+        }
+    }
+
+    @PostMapping(path = ["/savesettings"])
+    @ResponseStatus(HttpStatus.OK)
+    fun savesettings(@RequestBody note: String,
+                     @RequestParam(required = false) urlApi: String,
+                     @RequestParam(required = false) gold: Double,
+                     @RequestParam(required = false) deltaPIN: Double,
+                     @RequestParam(required = false) minKef: Double,
+                     @RequestParam(required = false) minValue: Double,
+                     @RequestParam(required = false) maxValue: Double,
+                     @RequestParam(required = false) saveBalance: Double,
+                     @RequestParam(required = false) balanceBetting: Boolean,
+                     @RequestParam(required = false) creditBetting: Boolean
+    ) {
+        settings.setSettings(urlApi, gold, deltaPIN, minKef, minValue, maxValue, balanceBetting, creditBetting, saveBalance)
+    }
+
+    private fun getToken() {
+        emittersData.forEach { emitter ->
+            nonBlockingService.execute {
+                try {
+                    val k = SseEmitter.event()
+                            .name("currentToken")
+                            .reconnectTime(20_000L)
+                            .data( TokenMessage(getAccessToken()),
+                                    MediaType.APPLICATION_JSON)
+                    emitter.value.send(k)
+
+                } catch (ioe: IOException) {
+                    emittersData.remove(emitter.key)
+                }
+            }
         }
     }
 
@@ -274,7 +331,7 @@ class PageController : CoroutineScope,
         }
     }
 
-    override suspend fun onMatchesUpdate(matches: List<MatchCrop>) {
+    override suspend fun onMatchesUpdate(matches: List<Match>) {
         emittersData.forEach { emitter ->
             nonBlockingService.execute {
                 try {
@@ -310,14 +367,14 @@ class PageController : CoroutineScope,
         }
     }
 
-    override suspend fun onPinDownEvent(events: List<String>) {
+    override suspend fun onPlaceEvent(bet: PlacingBet) {
         emittersData.forEach { emitter ->
             nonBlockingService.execute {
                 try {
                     val k = SseEmitter.event()
-                            .name("pinDownEvent")
+                            .name("placeBet")
                             .reconnectTime(20_000L)
-                            .data(events,
+                            .data(bet,
                                     MediaType.APPLICATION_JSON)
                     emitter.value.send(k)
 
@@ -364,6 +421,58 @@ class PageController : CoroutineScope,
         }
     }
 
+    override fun onChangeSettings(set: SettingsDao) {
+        emittersData.forEach { emitter ->
+            nonBlockingService.execute {
+                try {
+                    val k = SseEmitter.event()
+                            .name("changeSettings")
+                            .reconnectTime(20_000L)
+                            .data(set,
+                                    MediaType.APPLICATION_JSON)
+                    emitter.value.send(k)
 
+                } catch (ioe: IOException) {
+                    emittersData.remove(emitter.key)
+                }
+            }
+        }
+    }
 
+    override fun updateState(bal: CurrentStateSSEModel) {
+        emittersData.forEach { emitter ->
+            nonBlockingService.execute {
+                try {
+                    val k = SseEmitter.event()
+                            .name("balance")
+                            .reconnectTime(20_000L)
+                            .data(bal, MediaType.APPLICATION_JSON)
+
+                    emitter.value.send(k)
+
+                } catch (ioe: IOException) {
+                    emittersData.remove(emitter.key)
+                }
+            }
+        }
+    }
+
+    override fun openedBets(openedBets: Array<BetInfo>?) {
+        if (openedBets == null) return
+        emittersData.forEach { emitter ->
+            nonBlockingService.execute {
+                try {
+                    val k = SseEmitter.event()
+                            .name("openedBets")
+                            .reconnectTime(20_000L)
+                            .data(openedBets, MediaType.APPLICATION_JSON)
+
+                    emitter.value.send(k)
+
+                } catch (ioe: IOException) {
+                    emittersData.remove(emitter.key)
+                }
+            }
+        }
+    }
 }

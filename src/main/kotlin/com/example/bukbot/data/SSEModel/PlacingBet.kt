@@ -4,8 +4,8 @@ class PlacingBet(
         val home: String,
         val guest: String,
         val source: String,
+        val league: String,
         val pinVal: Double,
         val sourceVal: Double,
-        val type: String,
-        val valueType: Double
+        val type: String
 )

@@ -1,5 +1,6 @@
 package com.example.bukbot.data.oddsList
 
+import com.example.bukbot.controller.vodds.VoddsController
 import com.example.bukbot.utils.round
 import jayeson.lib.feed.api.LBType
 import jayeson.lib.feed.api.OddFormat
@@ -9,7 +10,7 @@ import jayeson.lib.feed.api.twoside.PivotBias
 import jayeson.lib.feed.api.twoside.PivotType
 import jayeson.lib.feed.soccer.SoccerRecord
 
-class  PinOdd {
+class PinOdd {
     private var matchIdProp: String
     val matchId: String
         get() {
@@ -68,6 +69,37 @@ class  PinOdd {
             return startRateUnderProp.round(3)
         }
 
+    private var recordIdProp: Long = 0
+    val recordId: Long
+        get() {
+            return recordIdProp
+        }
+
+    //    private var endRateProp: Double = 0.0
+//    var endRateOver: Double
+//        get() {
+//            return endRateProp.round(3)
+//        }
+//        set(value) {
+//            endRateProp = value
+//        }
+    var endRateOver: Double = 0.0
+        get() {
+            return field.round(3)
+        }
+        set(value) {
+            field = value
+        }
+
+    private var targetPivotProp: VoddsController.TargetPivot = VoddsController.TargetPivot.OVER
+    var targetPivot: VoddsController.TargetPivot
+        get() {
+            return targetPivotProp
+        }
+        set(value) {
+            targetPivotProp = value
+        }
+
     val lblType: LBType
 
     constructor(
@@ -84,6 +116,7 @@ class  PinOdd {
         this.startRateUnderProp = item.rateUnder().toDouble()
         this.pivotValueProp = item.pivotValue().toDouble()
         this.lblType = item.lbType()
+        this.recordIdProp = item.id()
     }
 
     override fun hashCode(): Int {
