@@ -69,11 +69,6 @@ class VoddsController : CoroutineScope, IGettingSnapshotListener {
                     VoddsThreadFactory()
             ).asCoroutineDispatcher()
 
-    private val backgroundTaskDispatcher = ThreadPoolExecutor(
-            2, 12, 60L,
-            TimeUnit.SECONDS, SynchronousQueue<Runnable>(), BackgroundTaskThreadFactory()
-    ).asCoroutineDispatcher()
-
     @PostConstruct
     fun init() {
         settings.addSettingsEventListener(this)
@@ -91,7 +86,7 @@ class VoddsController : CoroutineScope, IGettingSnapshotListener {
             bettingEvents[it.matchIdent] = it.startTime
         }
         val factory = SportsFeedFactory()
-        val client = factory.createFromConfigFile("/home/sergey/projects/BukBot/build/resources/main/conf/libSportConfig.json")
+        val client = factory.createFromConfigFile("/home/admin/libSportConfig.json")
         val noFilterIBetMatchFeedView = client.view(SoccerMatch::class.java)
         val myHandler = VoddsEventHandler(this@VoddsController)
         noFilterIBetMatchFeedView.register(myHandler)
@@ -114,8 +109,13 @@ class VoddsController : CoroutineScope, IGettingSnapshotListener {
         k.forEach {
             bettingEvents.remove(it)
         }
+        val match = matchList.filter {
+            it.value.startTime < now
+        }.map { it.key }
+        match.forEach {
+            matchList.remove(it)
+        }
         placedBetRepository.deleteOldMatches(now)
-
 //        voddsInterractor.changeMatchList(matchList)
     }
 
@@ -208,10 +208,6 @@ class VoddsController : CoroutineScope, IGettingSnapshotListener {
         }
 //        voddsInterractor.changePinList(pinOddList)
 //        println("${pinOddList.size}")
-    }
-
-    fun sendBetEvent(bet: PlacingBet) = launch(backgroundTaskDispatcher) {
-        voddsInterractor.placeEvent(bet)
     }
 
     private fun stringHash(item: SoccerRecord): Int {

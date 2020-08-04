@@ -45,12 +45,27 @@ class TelegramBot(
             approvedUsersList[it.chatId] = it
         }
         currentState.setTelegramBot(this)
+        sendStartMessage()
     }
 
     fun sendStateMessage(str: String){
         val sendMessage = SendMessage()
         sendMessage.enableMarkdown(true)
         sendMessage.text = str
+        approvedUsersList.forEach{
+            sendMessage.chatId = it.value.chatId
+            try {
+                execute(sendMessage)
+            } catch (e: Exception){
+
+            }
+        }
+    }
+
+    fun sendStartMessage() {
+        val sendMessage = SendMessage()
+        sendMessage.enableMarkdown(true)
+        sendMessage.text = "Сервер включен"
         approvedUsersList.forEach{
             sendMessage.chatId = it.value.chatId
             try {

@@ -1,14 +1,16 @@
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+import org.springframework.boot.gradle.tasks.bundling.BootJar
+import org.gradle.jvm.tasks.Jar
 
 plugins {
     id("org.springframework.boot") version "2.2.0.M6"
     id("io.spring.dependency-management") version "1.0.8.RELEASE"
+    id("application")
     kotlin("jvm") version "1.3.50"
     kotlin("plugin.spring") version "1.3.50"
 }
-
 group = "com.example.bukbot"
-version = "0.0.1-SNAPSHOT"
+version = "0.0.1"
 java.sourceCompatibility = JavaVersion.VERSION_1_8
 
 repositories {
@@ -65,9 +67,51 @@ dependencies {
     testImplementation("io.projectreactor:reactor-test")
 }
 
+application {
+    @Suppress("UnstableApiUsage") mainClassName = "com.example.bukbot.BukBotApplication"
+    applicationName = "BukBot"
+}
+//
+//springBoot {
+//    mainClassName = "com.example.bukbot.BukBotApplication"
+//}
+
 tasks.withType<KotlinCompile> {
     kotlinOptions {
         freeCompilerArgs = listOf("-Xjsr305=strict")
         jvmTarget = "1.8"
     }
 }
+//tasks.getByName<BootJar>("bootJar") {
+//    mainClassName = "com.example.bukbot.BukBotApplication"
+//    classifier = "boot"
+//    manifest {
+//        attributes("Main-Class" to "org.springframework.boot.loader.PropertiesLauncher")
+//        attributes("Start-Class" to "com.example.bukbot.BukBotApplication")
+//    }
+//    launchScript{
+//        properties(mapOf("logFilename" to "BukBot-app.log"))
+//    }
+//}
+
+
+
+//val fatJar = task("fatJar", type = Jar::class) {
+//    baseName = "${project.name}-fat"
+//    // manifest Main-Class attribute is optional.
+//    // (Used only to provide default main class for executable jar)
+//    manifest {
+//        attributes["Main-Class"] = "com.example.bukbot.BukBotApplication" // fully qualified class name of default main class
+//    }
+//    from(configurations.runtimeClasspath.get().map {
+//        if (it.isDirectory) it
+//        else zipTree(it)
+//    })
+//    with(tasks.jar.get() as CopySpec)
+//}
+//
+//tasks {
+//    "build" {
+//        dependsOn(fatJar)
+//    }
+//}

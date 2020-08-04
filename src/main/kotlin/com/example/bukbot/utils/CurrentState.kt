@@ -1,11 +1,9 @@
 package com.example.bukbot.utils
 
 import com.example.bukbot.BukBotApplication
-import com.example.bukbot.BukBotApplication.Companion.backgroundTaskDispatcher
 import com.example.bukbot.data.SSEModel.CurrentStateSSEModel
 import com.example.bukbot.data.api.Response.openedbets.BetInfo
 import com.example.bukbot.data.api.Response.openedbets.OpenedBet
-import com.example.bukbot.data.models.CurrentBalance
 import com.example.bukbot.service.events.CurStateEvent
 import com.example.bukbot.service.events.VoddsEvents
 import com.example.bukbot.service.rest.ApiClient

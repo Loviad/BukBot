@@ -9,6 +9,7 @@ import com.example.bukbot.data.api.Response.BetPlaceResponse
 import com.example.bukbot.data.api.Response.BetTicketResponse
 import com.example.bukbot.data.api.Response.openedbets.OpenedBet
 import com.example.bukbot.data.oddsList.PinOdd
+import com.example.bukbot.utils.CurrentState
 import com.example.bukbot.utils.Settings
 import com.example.bukbot.utils.getAccessToken
 import org.springframework.stereotype.Component
@@ -37,6 +38,8 @@ class ApiClient: CoroutineScope {
 
     @Autowired
     private lateinit var settings: Settings
+    @Autowired
+    private lateinit var currentState: CurrentState
 
     override val coroutineContext = orderedApiTaskDispatcher
     val placedDispatcher = backgroundTaskDispatcher
@@ -175,7 +178,7 @@ class ApiClient: CoroutineScope {
                     if (listMap[i].currentOdd!! >= settings.minKef &&
                             ((listMap[i].currentOdd!! / item.endRateOver) * 100) - 100 >= settings.minValue &&
                             ((listMap[i].currentOdd!! / item.endRateOver) * 100) - 100 <= settings.maxValue) {
-                        if (listMap[i].minStake!!.toDouble() <= settings.getGold()) {
+                        if (listMap[i].minStake!!.toDouble() <= settings.getGold() && currentState.canBetting) {
                             val zUn = UUID.randomUUID().toString()
                             val body = FormBody.Builder()
                                     .add("username", "unity_group170")
@@ -207,6 +210,9 @@ class ApiClient: CoroutineScope {
                                 if(map.actionStatus == 0) {
                                     code(listMap[i].sportBook!!, listMap[i].currentOdd!!, map.id!!)
                                     i = -1
+                                } else if(map.actionStatus == 14) {
+                                    currentState.state.balance = 0.0
+                                    currentState.state.credit = 0.0
                                 }
                             } catch (e: Exception) {
                                 Unit

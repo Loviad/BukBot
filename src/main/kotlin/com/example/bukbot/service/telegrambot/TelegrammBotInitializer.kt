@@ -34,9 +34,9 @@ class TelegrammBotInitializer{
         val botOptions = ApiContext.getInstance(DefaultBotOptions::class.java)
 
 
-        botOptions.proxyHost = "127.0.0.1"
-        botOptions.proxyPort = 9050
-        botOptions.proxyType = DefaultBotOptions.ProxyType.SOCKS5
+//        botOptions.proxyHost = "127.0.0.1"
+//        botOptions.proxyPort = 9050
+//        botOptions.proxyType = DefaultBotOptions.ProxyType.SOCKS5
 
         try {
             botsApi.registerBot(TelegramBot(authInterractor, telegramInterractor, currentState, botOptions))
