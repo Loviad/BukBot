@@ -10,7 +10,8 @@ object DatePatterns {
     const val DAY_MONTH_YEAR = "dd.MM.yyyy"
     const val HOUR_MINUTE = "HH:mm"
     const val HOUR_MINUTE_SECOND = "HH:mm:ss"
-    const val DAY_MONTH_YEAR_TIME = "dd.MM.yyyy HH:mm"
+    const val DAY_MONTH_YEAR_TIME = "dd.MM.yyyy HH:mm:ss"
     const val HOUR_MINUTE_DAY_MONTH = "HH:mm d MMMM"
     const val DAY_MONTH_HOUR_MINUTE = "d MMMM HH:mm"
+    const val DAY_MONTH_HOUR = "d-MM HH"
 }

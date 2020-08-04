@@ -123,17 +123,28 @@
                                 <p>Главная</p>
                             </a>
                         </li>
-                        <li class="nav-item">
-                            <a href="/stat" class="nav-link">
-                                <i class="nav-icon fas fa-chart-line"></i>
-                                <p>Статистика</p>
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a href="/apitest" class="nav-link">
+                        <li class="nav-item has-treeview">
+                            <a href="#" class="nav-link">
                                 <i class="nav-icon fas fa-wrench"></i>
-                                <p>Служебное</p>
+                                <p>
+                                    Служебное
+                                    <i class="right fas fa-angle-left"></i>
+                                </p>
                             </a>
+                            <ul class="nav nav-treeview">
+                                <li class="nav-item">
+                                    <a href="/apitest" class="nav-link">
+                                        <i class="nav-icon fas fa-cogs"></i>
+                                        <p>Настройки</p>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="/terminal" class="nav-link">
+                                        <i class="nav-icon fas fa-terminal"></i>
+                                        <p>Консоль бота</p>
+                                    </a>
+                                </li>
+                            </ul>
                         </li>
                     </ul>
                 </nav>

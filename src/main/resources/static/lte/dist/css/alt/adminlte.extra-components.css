@@ -495,7 +495,8 @@
 
 .direct-chat-messages {
   transform: translate(0, 0);
-  height: 250px;
+  min-height: 250px;
+  max-height: 800px;
   overflow: auto;
   padding: 10px;
 }

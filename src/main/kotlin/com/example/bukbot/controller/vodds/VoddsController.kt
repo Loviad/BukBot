@@ -1,19 +1,16 @@
 package com.example.bukbot.controller.vodds
 
 import com.example.bukbot.data.SSEModel.Match
-import com.example.bukbot.data.SSEModel.PlacingBet
 import com.example.bukbot.data.database.Dao.PlacedBetDao
 import com.example.bukbot.data.oddsList.PinOdd
 import com.example.bukbot.data.repositories.PlacedBetRepository
+import com.example.bukbot.domain.interactors.page.PageInterractor
 import com.example.bukbot.domain.interactors.vodds.VoddsInterractor
 import com.example.bukbot.service.events.IGettingSnapshotListener
 import com.example.bukbot.service.rest.ApiClient
-import com.example.bukbot.utils.CurrentState
-import com.example.bukbot.utils.DateTimeUtils
-import com.example.bukbot.utils.Settings
-import com.example.bukbot.utils.round
+import com.example.bukbot.utils.*
+import com.example.bukbot.utils.threadfabrick.UpdateVoddsThreadFactory
 import com.example.bukbot.utils.threadfabrick.VoddsThreadFactory
-import com.loviad.bukbot.utils.BackgroundTaskThreadFactory
 import jayeson.lib.feed.api.LBType
 import jayeson.lib.feed.api.twoside.PivotType
 import jayeson.lib.feed.soccer.SoccerMatch
@@ -23,13 +20,9 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.launch
 import org.joda.time.DateTime
-import org.joda.time.DateTimeZone
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Component
 import java.util.concurrent.Executors
-import java.util.concurrent.SynchronousQueue
-import java.util.concurrent.ThreadPoolExecutor
-import java.util.concurrent.TimeUnit
 import java.util.stream.Stream
 import javax.annotation.PostConstruct
 import kotlin.streams.toList
@@ -51,6 +44,9 @@ class VoddsController : CoroutineScope, IGettingSnapshotListener {
     private lateinit var voddsInterractor: VoddsInterractor
 
     @Autowired
+    private lateinit var pageInterractor: PageInterractor
+
+    @Autowired
     private lateinit var placedBetRepository: PlacedBetRepository
 
     val matchList = HashMap<String, Match>()
@@ -66,8 +62,9 @@ class VoddsController : CoroutineScope, IGettingSnapshotListener {
 
     private val updateDispatcher = //backgroundTaskDispatcher
             Executors.newSingleThreadExecutor(
-                    VoddsThreadFactory()
+                    UpdateVoddsThreadFactory()
             ).asCoroutineDispatcher()
+
 
     @PostConstruct
     fun init() {
@@ -92,11 +89,12 @@ class VoddsController : CoroutineScope, IGettingSnapshotListener {
         noFilterIBetMatchFeedView.register(myHandler)
         client.start()
         voddsInterractor.startParsing()
+        pageInterractor.sendMessageConsole("Start Parsing", pageInterractor.ACCEPT)
     }
 
     fun insertMatches(stream: Stream<SoccerMatch>?) = launch(updateDispatcher) {
         if (stream == null) return@launch
-        println("INSERT_MATCH")
+        sendingMessageToConsole("Insert Matches")
         stream.forEach {
             matchList[it.id()] = Match(it.id(), it.host(), it.guest(), it.league(), it.startTime())
         }
@@ -121,7 +119,7 @@ class VoddsController : CoroutineScope, IGettingSnapshotListener {
 
     fun deleteMatches(stream: Stream<SoccerMatch>?) = launch(updateDispatcher) {
         if (stream == null) return@launch
-        println("DELETE_MATCH")
+        sendingMessageToConsole("Delete Matches")
 //        stream.forEach { match ->
 //            matchList.remove(match.id())
 //        }
@@ -133,7 +131,7 @@ class VoddsController : CoroutineScope, IGettingSnapshotListener {
     fun updateOdd(stream: Stream<SoccerRecord>?) = launch(updateDispatcher) {
         if (stream == null || !currentState.canBetting || !settings.getBetPlacing()) return@launch
         var changeRate: Boolean
-        println("UPDATE")
+        sendingMessageToConsole("Update ODDs")
         stream.toList().forEach { record ->
             if (bettingEvents["${record.matchId()}_${record.pivotType().name}_${record.timeType().name()}"] == null) {
                 if (record.source() == "PIN88" && record.lbType() == LBType.BACK && (record.pivotType() == PivotType.HDP || record.pivotType() == PivotType.TOTAL)) {
@@ -169,7 +167,7 @@ class VoddsController : CoroutineScope, IGettingSnapshotListener {
                                                 it.endRateOver,
                                                 source,
                                                 currentOdd.toDouble().round(3),
-                                                matchList[it.matchId]?.startTime ?:-1,
+                                                matchList[it.matchId]?.startTime ?: -1,
                                                 idBet
                                         )
                                 )
@@ -209,6 +207,11 @@ class VoddsController : CoroutineScope, IGettingSnapshotListener {
 //        voddsInterractor.changePinList(pinOddList)
 //        println("${pinOddList.size}")
     }
+
+    private fun sendingMessageToConsole(message: String)  {
+        pageInterractor.sendMessageConsole(message)
+    }
+
 
     private fun stringHash(item: SoccerRecord): Int {
         var result = item.matchId().hashCode()

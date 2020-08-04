@@ -35,8 +35,8 @@ class TelegramBot(
         val telegramInterractor: TelegramInterractor,
         val currentState: CurrentState,
         options: DefaultBotOptions? = null
-):      TelegramLongPollingBot(options),
-        AuthRequestListener{
+) : TelegramLongPollingBot(options),
+        AuthRequestListener {
     private var approvedUsersList = HashMap<String, ApprovedUsers>()
 
     init {
@@ -48,15 +48,15 @@ class TelegramBot(
         sendStartMessage()
     }
 
-    fun sendStateMessage(str: String){
+    fun sendStateMessage(str: String) {
         val sendMessage = SendMessage()
         sendMessage.enableMarkdown(true)
         sendMessage.text = str
-        approvedUsersList.forEach{
+        approvedUsersList.forEach {
             sendMessage.chatId = it.value.chatId
             try {
                 execute(sendMessage)
-            } catch (e: Exception){
+            } catch (e: Exception) {
 
             }
         }
@@ -66,27 +66,27 @@ class TelegramBot(
         val sendMessage = SendMessage()
         sendMessage.enableMarkdown(true)
         sendMessage.text = "Сервер включен"
-        approvedUsersList.forEach{
+        approvedUsersList.forEach {
             sendMessage.chatId = it.value.chatId
             try {
                 execute(sendMessage)
-            } catch (e: Exception){
+            } catch (e: Exception) {
 
             }
         }
     }
 
-    fun getCurrentState(){
+    fun getCurrentState() {
         currentState.sendStateToTelegram()
     }
 
     override fun onUpdateReceived(update: Update?) {
         val message = update?.message
-        message?.let{
+        message?.let {
             if (!checkApproved(message)) return
             message.entities?.firstOrNull()?.let {
-                if (it.type == "bot_command"){
-                    when(val command = message.text.substring(it.offset, it.offset + it.length)){
+                if (it.type == "bot_command") {
+                    when (val command = message.text.substring(it.offset, it.offset + it.length)) {
                         "/approved" -> sendTxtMessage(message, "Привет")
                         "/login" -> approvedLogin(message, IntRange(it.offset, it.offset + it.length))
                         "/credit" -> getCredit(message)
@@ -106,10 +106,18 @@ class TelegramBot(
         val sendMessage = SendMessage()
         sendMessage.enableMarkdown(true)
         sendMessage.chatId = message.chatId.toString()
-        sendMessage.text = "Парсинг: " + if (!state.first) {"No Active\n"} else {"Active\n"} + "Установка ставок: " + if (!state.second) {"No Active\n"} else {"Active\n"}
+        sendMessage.text = "Парсинг: " + if (!state.first) {
+            "No Active\n"
+        } else {
+            "Active\n"
+        } + "Установка ставок: " + if (!state.second) {
+            "No Active\n"
+        } else {
+            "Active\n"
+        }
         try {
             execute(sendMessage)
-        } catch (e: Exception){
+        } catch (e: Exception) {
 
         }
 
@@ -120,14 +128,15 @@ class TelegramBot(
     }
 
     fun approvedLogin(message: Message, range: IntRange) {
-        try{
-        val user = telegramInterractor.findByChatId(message.chatId.toString())
-        authInterractor.sendLogin(LoginInfo(user.chatId, user.password, message.text.removeRange(range)))}
-        catch (e: Exception){
+        try {
+            val user = telegramInterractor.findByChatId(message.chatId.toString())
+            authInterractor.sendLogin(LoginInfo(user.chatId, user.password, message.text.removeRange(range)))
+        } catch (e: Exception) {
             //TODO : зафиксировать попытку левого входа
         }
     }
-    fun getCredit(message: Message){
+
+    fun getCredit(message: Message) {
         val sendMessage = SendMessage()
         sendMessage.enableMarkdown(true)
         sendMessage.chatId = message.chatId.toString()
@@ -135,14 +144,32 @@ class TelegramBot(
         sendMessage.text = telegramInterractor.getCredit().toString()
         try {
             execute(sendMessage)
-        } catch (e: Exception){
+        } catch (e: Exception) {
 
         }
     }
 
-    private fun checkApproved(message: Message):Boolean{
+    private fun badUserMessageAvtor(message: Message) {
+        val sendMessage = SendMessage()
+        sendMessage.enableMarkdown(true)
+        sendMessage.text = "Не известный обратился к боту\n"+
+                "chatId: ${message.chatId}\n"+
+                "fistName: ${message.chat.firstName}\n"+
+                "lastName: ${message.chat.lastName}"
+        approvedUsersList.forEach {
+            sendMessage.chatId = it.value.chatId
+            try {
+                execute(sendMessage)
+            } catch (e: Exception) {
+
+            }
+        }
+    }
+
+    private fun checkApproved(message: Message): Boolean {
         val key = message.chatId.toString()
-        if (!approvedUsersList.containsKey(key)){
+        if (!approvedUsersList.containsKey(key)) {
+            badUserMessageAvtor(message)
             return false
         }
         return approvedUsersList[key]?.chatId == message.chatId.toString() &&
@@ -158,7 +185,7 @@ class TelegramBot(
         return "972427891:AAGVtH_slSf4_T7FPFc1T7O3BnVWPrtUmMs"
     }
 
-    private fun sendTxtMessage(message: Message, str: String){
+    private fun sendTxtMessage(message: Message, str: String) {
         val sendMessage = SendMessage()
         sendMessage.enableMarkdown(true)
         sendMessage.chatId = message.chatId.toString()
@@ -166,10 +193,11 @@ class TelegramBot(
         sendMessage.text = str
         try {
             execute(sendMessage)
-        } catch (e: Exception){
+        } catch (e: Exception) {
 
         }
     }
+
     override fun requestAuth() {
         telegramInterractor.findAllApprovedUsers().forEach {
             val sendMessage = SendMessage()
@@ -179,7 +207,7 @@ class TelegramBot(
             sendMessage.text = "Попытка входа в панель управления\n если это не Вы, введите\n /logoutAll\n Для входа введите\n /login \"цифры со страницы входа\"\n(через пробел, безкавычек)"
             try {
                 execute(sendMessage)
-            } catch (e: Exception){
+            } catch (e: Exception) {
 
             }
         }

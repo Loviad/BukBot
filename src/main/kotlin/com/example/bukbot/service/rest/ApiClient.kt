@@ -3,13 +3,16 @@ package com.example.bukbot.service.rest
 import com.example.bukbot.BukBotApplication.Companion.backgroundTaskDispatcher
 import com.example.bukbot.BukBotApplication.Companion.orderedApiTaskDispatcher
 import com.example.bukbot.controller.vodds.VoddsController
+import com.example.bukbot.data.SSEModel.ConsoleMessage
 import com.example.bukbot.data.SSEModel.CurrentStateSSEModel
 import com.example.bukbot.data.api.Balance
 import com.example.bukbot.data.api.Response.BetPlaceResponse
 import com.example.bukbot.data.api.Response.BetTicketResponse
 import com.example.bukbot.data.api.Response.openedbets.OpenedBet
 import com.example.bukbot.data.oddsList.PinOdd
+import com.example.bukbot.domain.interactors.page.PageInterractor
 import com.example.bukbot.utils.CurrentState
+import com.example.bukbot.utils.DatePatterns
 import com.example.bukbot.utils.Settings
 import com.example.bukbot.utils.getAccessToken
 import org.springframework.stereotype.Component
@@ -40,6 +43,8 @@ class ApiClient: CoroutineScope {
     private lateinit var settings: Settings
     @Autowired
     private lateinit var currentState: CurrentState
+    @Autowired
+    private lateinit var pageInterractor: PageInterractor
 
     override val coroutineContext = orderedApiTaskDispatcher
     val placedDispatcher = backgroundTaskDispatcher
@@ -72,7 +77,7 @@ class ApiClient: CoroutineScope {
             }
             response1.close()
         } catch (e: Exception) {
-            Unit
+            pageInterractor.sendMessageConsole("Ошибка при получении баланса: " + e.message, pageInterractor.ERROR)
         }
     }
 
@@ -98,6 +103,7 @@ class ApiClient: CoroutineScope {
                 openBets.set(map)
             }
         } catch (e: Exception) {
+            pageInterractor.sendMessageConsole("Ошибка при открытых ставок: " + e.message, pageInterractor.ERROR)
             openBets.set(null)
         }
     }
@@ -156,15 +162,13 @@ class ApiClient: CoroutineScope {
                 val response1 = client.newCall(request1).execute()
                 val k = response1.body()!!.string()
                 val map : BetTicketResponse = mapper.readValue(k)
-
+                response1.close()
                 if(map.actionStatus == 0) {
                     map.sportBook = sportbook
                     listMap.add(map)
                 }
-
-                response1.close()
             } catch (e: Exception) {
-                Unit
+                pageInterractor.sendMessageConsole("Ошибка при парсинге данных о ставке среди контор: " + e.message, pageInterractor.ERROR)
             }
         }
 
@@ -204,18 +208,21 @@ class ApiClient: CoroutineScope {
                             try {
                                 val response2 = client.newCall(request2).execute()
                                 val k2 = response2.body()!!.string()
-                                println(k2)
                                 val map : BetPlaceResponse = mapper.readValue(k2)
                                 response2.close()
                                 if(map.actionStatus == 0) {
+                                    pageInterractor.sendMessageConsole(k2, pageInterractor.ACCEPT)
                                     code(listMap[i].sportBook!!, listMap[i].currentOdd!!, map.id!!)
                                     i = -1
                                 } else if(map.actionStatus == 14) {
+                                    pageInterractor.sendMessageConsole("Баланс кончился", pageInterractor.IMPORTANT)
                                     currentState.state.balance = 0.0
                                     currentState.state.credit = 0.0
+                                } else {
+                                    pageInterractor.sendMessageConsole(k2, pageInterractor.IMPORTANT)
                                 }
                             } catch (e: Exception) {
-                                Unit
+                                pageInterractor.sendMessageConsole("Ошибка при парсинге установки ставки: " + e.message, pageInterractor.ERROR)
                             }
 
                         }
@@ -223,7 +230,7 @@ class ApiClient: CoroutineScope {
                     i--
                 }
             } catch (e:Exception) {
-
+                pageInterractor.sendMessageConsole("Ошибка при поиске валуя: " + e.message, pageInterractor.ERROR)
             }
         }
     }

@@ -10,6 +10,32 @@
             <div class="container-fluid">
                 <div class="row">
                     <div class="col-12 mt-5">
+                        <!-- solid sales graph -->
+                        <div class="card bg-gradient-info">
+                            <div class="card-header border-0">
+                                <h3 class="card-title">
+                                    <i class="fas fa-th mr-1"></i>
+                                    График открытых ставок
+                                </h3>
+                            </div>
+                            <div style="max-width: 100%; overflow: auto;">
+                                <div class="card-body">
+                                    <canvas class="chart" id="line-chart" style="min-height: 250px; height: 250px; max-height: 250px;"></canvas>
+                                </div>
+                            </div>
+                            <!-- /.card-body -->
+                        </div>
+                        <!-- /.card -->
+                    </div>
+                </div>
+            </div>
+        </section>
+
+
+        <section class="content">
+            <div class="container-fluid">
+                <div class="row">
+                    <div class="col-12 mt-5">
 
                         <div class="card">
                             <div class="card-header">
@@ -106,7 +132,8 @@
 <script th:src="@{lte/plugins/datatables-bs4/js/dataTables.bootstrap4.min.js}"></script>
 <script th:src="@{lte/plugins/datatables-responsive/js/dataTables.responsive.min.js}"></script>
 <script th:src="@{lte/plugins/datatables-responsive/js/responsive.bootstrap4.min.js}"></script>
-<script>
+<script th:src="@{lte/plugins/chart.js/Chart.min.js}"></script>
+<script th:inline="javascript">
       $(function () {
         $("#example1").DataTable({
           "responsive": true,
@@ -121,6 +148,77 @@
           "autoWidth": false,
           "responsive": true,
         });
+
+        $(window).resize(function(e) {
+            fitChart()
+        });
+
+          var salesGraphChartCanvas = $('#line-chart').get(0).getContext('2d');
+
+          var salesGraphChartData = {
+            labels  : /*[[${labels}]]*/,
+            datasets: [
+              {
+                label               : 'Ставок',
+                fill                : false,
+                borderWidth         : 2,
+                lineTension         : 0,
+                spanGaps : true,
+                borderColor         : '#efefef',
+                pointRadius         : 3,
+                pointHoverRadius    : 7,
+                pointColor          : '#efefef',
+                pointBackgroundColor: '#efefef',
+                data                : /*[[${fields}]]*/
+              }
+            ]
+          }
+          var salesGraphChartOptions = {
+            maintainAspectRatio : false,
+            responsive : true,
+            legend: {
+              display: false,
+            },
+            scales: {
+              xAxes: [{
+                ticks : {
+                  fontColor: '#efefef',
+                },
+                gridLines : {
+                  display : false,
+                  color: '#efefef',
+                  drawBorder: false,
+                }
+              }],
+              yAxes: [{
+                ticks : {
+                  stepSize: 10,
+                  fontColor: '#efefef',
+                },
+                gridLines : {
+                  display : true,
+                  color: '#efefef',
+                  drawBorder: false,
+                }
+              }]
+            }
+          }
+          var salesGraphChart = new Chart(salesGraphChartCanvas, {
+                  type: 'line',
+                  data: salesGraphChartData,
+                  options: salesGraphChartOptions
+                }
+          );
+          var xAxisLabelMinWidth = 30;
+          function fitChart(){
+                var chartCanvas = document.getElementById('line-chart');
+                var maxWidth = chartCanvas.parentElement.parentElement.clientWidth;
+                var width = Math.max(salesGraphChart.data.labels.length * xAxisLabelMinWidth, maxWidth);
+
+                chartCanvas.parentElement.style.width = width +'px';
+          }
+
+          fitChart()
       });
 </script>
 

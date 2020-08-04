@@ -1,5 +1,6 @@
 package com.example.bukbot.domain.interactors.vodds
 
+import com.example.bukbot.data.SSEModel.ConsoleMessage
 import com.example.bukbot.data.SSEModel.PlacingBet
 import com.example.bukbot.data.SSEModel.Match
 import com.example.bukbot.data.oddsList.PinOdd

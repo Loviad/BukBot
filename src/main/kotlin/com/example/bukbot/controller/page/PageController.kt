@@ -13,12 +13,11 @@ import com.example.bukbot.domain.interactors.auth.AuthInterractor
 import com.example.bukbot.domain.interactors.page.PageInterractor
 import com.example.bukbot.domain.interactors.vodds.VoddsInterractor
 import com.example.bukbot.service.events.*
-import com.example.bukbot.utils.CurrentState
-import com.example.bukbot.utils.Settings
-import com.example.bukbot.utils.getAccessToken
-import com.example.bukbot.utils.round
+import com.example.bukbot.utils.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+import org.joda.time.DateTime
+import org.joda.time.DateTimeZone
 import org.springframework.stereotype.Controller
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter
 import org.springframework.beans.factory.annotation.Autowired
@@ -88,8 +87,27 @@ class PageController : CoroutineScope,
         currentState.getOpenedBets()?.let {
             model.addAttribute("openedBets", it)
         }
+        val o = currentState.getGraphicsFields()
+        if (o.count() > 0) {
+            model.addAttribute("labels", o.map { DateTime(it.id).toString(DatePatterns.DAY_MONTH_HOUR) })
+            model.addAttribute("fields", o.map { it.count })
+        }
 
         return "lte"
+    }
+
+    @GetMapping("/terminal")
+    fun console(model: Model, authentication: Authentication): String {
+        val state = pageInterractor.getSystemState()
+        model.addAttribute("id", authentication.name)
+        model.addAttribute("stateParse", state.first)
+        model.addAttribute("stateBetting", state.second)
+        model.addAttribute("balance", currentState.state.balance)
+        model.addAttribute("credit", currentState.state.credit)
+        model.addAttribute("pl", currentState.state.pl)
+        model.addAttribute("memory", currentState.state.memory)
+        model.addAttribute("messages", pageInterractor.messages)
+        return "cons"
     }
 
     @GetMapping("/login")
@@ -466,6 +484,24 @@ class PageController : CoroutineScope,
                             .name("openedBets")
                             .reconnectTime(20_000L)
                             .data(openedBets, MediaType.APPLICATION_JSON)
+
+                    emitter.value.send(k)
+
+                } catch (ioe: IOException) {
+                    emittersData.remove(emitter.key)
+                }
+            }
+        }
+    }
+
+    suspend fun sendMessageConsole(message: ConsoleMessage) {
+        emittersData.forEach { emitter ->
+            nonBlockingService.execute {
+                try {
+                    val k = SseEmitter.event()
+                            .name("consoleMessage")
+                            .reconnectTime(20_000L)
+                            .data(message, MediaType.APPLICATION_JSON)
 
                     emitter.value.send(k)
 

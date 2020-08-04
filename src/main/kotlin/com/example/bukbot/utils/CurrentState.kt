@@ -4,6 +4,8 @@ import com.example.bukbot.BukBotApplication
 import com.example.bukbot.data.SSEModel.CurrentStateSSEModel
 import com.example.bukbot.data.api.Response.openedbets.BetInfo
 import com.example.bukbot.data.api.Response.openedbets.OpenedBet
+import com.example.bukbot.data.database.Dao.OpenBets
+import com.example.bukbot.data.repositories.OpenedBetsRepository
 import com.example.bukbot.service.events.CurStateEvent
 import com.example.bukbot.service.events.VoddsEvents
 import com.example.bukbot.service.rest.ApiClient
@@ -12,6 +14,7 @@ import javafx.beans.property.SimpleObjectProperty
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Component
 import oshi.SystemInfo
@@ -25,6 +28,8 @@ class CurrentState : CoroutineScope {
     private lateinit var api: ApiClient
     @Autowired
     private lateinit var settings: Settings
+    @Autowired
+    private lateinit var openedBetsRepository: OpenedBetsRepository
 
     override val coroutineContext = BukBotApplication.orderedStateTaskDispatcher
     private val eventListener = ArrayList<VoddsEvents>()
@@ -62,8 +67,6 @@ class CurrentState : CoroutineScope {
         var i = 0
         while (true) {
             api.getBalance(state).join()
-            api.getOpenBets(openedBets).join()
-            state.OB = openedBets.get()?.totalResults ?: 0
             hal?.let {
                 state.memory = (((it.memory.available / 1024.0) / 1024.0) / 1024.0).round(2)
             }
@@ -71,12 +74,30 @@ class CurrentState : CoroutineScope {
                 it.updateState(state)
             }
             i++
-            if ( i == 6) {
+            if ( i == 12) {
+                api.getOpenBets(openedBets).join()
+                state.OB = openedBets.get()?.totalResults ?: 0
                 sendStateToTelegram()
+                openedBetsRepository.saveOpenBets(state.OB)
                 i = 0
             }
             delay( 5 * 60 * 1000)
         }
+    }
+
+    fun getGraphicsFields(): Array<OpenBets> {
+        return openedBetsRepository.findAllBets().sortedBy {
+            it.id
+        }.toTypedArray()
+    }
+
+    fun getOpenedBets(): Array<BetInfo>? {
+        updateOpenBets()
+        return openedBets.value?.betInfos
+    }
+
+    fun updateOpenBets() = runBlocking {
+        api.getOpenBets(openedBets).join()
     }
 
     fun sendStateToTelegram() {
@@ -89,9 +110,7 @@ class CurrentState : CoroutineScope {
         )
     }
 
-    fun getOpenedBets(): Array<BetInfo>? {
-        return openedBets.value?.betInfos
-    }
+
 
     fun addEventListener(listener: VoddsEvents){
         eventListener.add(listener)
