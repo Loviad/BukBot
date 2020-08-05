@@ -10,6 +10,7 @@ import com.example.bukbot.data.api.Response.BetPlaceResponse
 import com.example.bukbot.data.api.Response.BetTicketResponse
 import com.example.bukbot.data.api.Response.openedbets.OpenedBet
 import com.example.bukbot.data.oddsList.PinOdd
+import com.example.bukbot.data.repositories.PlacedBetRepository
 import com.example.bukbot.domain.interactors.page.PageInterractor
 import com.example.bukbot.utils.CurrentState
 import com.example.bukbot.utils.DatePatterns
@@ -32,7 +33,7 @@ import kotlin.collections.ArrayList
 
 
 @Component
-class ApiClient: CoroutineScope {
+class ApiClient : CoroutineScope {
     val JSON = MediaType.parse("application/json; charset=utf-8")
 
     var client = OkHttpClient()
@@ -41,10 +42,17 @@ class ApiClient: CoroutineScope {
 
     @Autowired
     private lateinit var settings: Settings
+
     @Autowired
     private lateinit var currentState: CurrentState
+
     @Autowired
     private lateinit var pageInterractor: PageInterractor
+
+    @Autowired
+    private lateinit var placedBetRepository: PlacedBetRepository
+
+    var bettingEvents: ArrayList<Int> = arrayListOf()
 
     override val coroutineContext = orderedApiTaskDispatcher
     val placedDispatcher = backgroundTaskDispatcher
@@ -68,9 +76,9 @@ class ApiClient: CoroutineScope {
         try {
             val response1 = client.newCall(request).execute()
             val k = response1.body()!!.string()
-            val map : Balance = mapper.readValue(k)
+            val map: Balance = mapper.readValue(k)
 
-            if(map.actionStatus == 0) {
+            if (map.actionStatus == 0) {
                 blnc.credit = map.credit!!
                 blnc.balance = map.outstanding!!
                 blnc.pl = map.pl!!
@@ -98,25 +106,32 @@ class ApiClient: CoroutineScope {
             val response1 = client.newCall(request).execute()
             val k = response1.body()!!.string()
             response1.close()
-            val map : OpenedBet = mapper.readValue(k)
-            if(map.actionStatus == 0) {
+            val map: OpenedBet = mapper.readValue(k)
+            if (map.actionStatus == 0) {
                 openBets.set(map)
+                if (map.betInfos != null && map.betInfos.count() > 0) {
+                    bettingEvents.clear()
+                    bettingEvents.addAll(map.betInfos.map {
+                        "${it.eventId}_${it.oddType}_${it.targetType}".hashCode()
+                    })
+                } else if (map.totalResults != null && map.totalResults == 0) {
+                    bettingEvents.clear()
+                }
             }
         } catch (e: Exception) {
-            pageInterractor.sendMessageConsole("Ошибка при открытых ставок: " + e.message, pageInterractor.ERROR)
-            openBets.set(null)
+            pageInterractor.sendMessageConsole("Ошибка при парсинге открытых ставок: " + e.message, pageInterractor.ERROR)
         }
     }
 
-    fun test(){
+    fun test() {
         val date = DateTime.parse("22/10/2011",
                 DateTimeFormat.forPattern("dd/MM/yyyy"))
-       println(DateTime.now(DateTimeZone.UTC).millis)
+        println(DateTime.now(DateTimeZone.UTC).millis)
     }
 
 
     @Throws(IOException::class)
-    fun placeBetTicket(item: PinOdd, code: (String, Float, String) -> Unit) = launch(placedDispatcher) {
+    fun placeBetTicket(item: PinOdd, o: Int) = launch(placedDispatcher) {
 
         var targetType: String
 
@@ -125,10 +140,10 @@ class ApiClient: CoroutineScope {
                 targetType = "home"
             }
             item.pivotType == PivotType.HDP && item.targetPivot == VoddsController.TargetPivot.UNDER -> {
-                 targetType = "away"
+                targetType = "away"
             }
             item.pivotType == PivotType.TOTAL && item.targetPivot == VoddsController.TargetPivot.OVER -> {
-                 targetType = "over"
+                targetType = "over"
             }
             item.pivotType == PivotType.TOTAL && item.targetPivot == VoddsController.TargetPivot.UNDER -> {
                 targetType = "under"
@@ -138,9 +153,13 @@ class ApiClient: CoroutineScope {
             }
         }
 
-        val listMap = ArrayList<BetTicketResponse>()
+        if (bettingEvents.contains("${item.matchId}_${item.oddType.name}_${targetType.toUpperCase()} ${item.tymeType}".hashCode())) {
+            pageInterractor.sendMessageConsole("Пропуск дублирующей ставки:$o", pageInterractor.ACCEPT)
+            return@launch
+        }
 
-        settings.sportbookList.forEach {sportbook ->
+        val listMap = ArrayList<BetTicketResponse>()
+        settings.sportbookList.forEach { sportbook ->
             val zUn = UUID.randomUUID().toString()
             val body = FormBody.Builder()
                     .add("username", "unity_group170")
@@ -161,28 +180,28 @@ class ApiClient: CoroutineScope {
             try {
                 val response1 = client.newCall(request1).execute()
                 val k = response1.body()!!.string()
-                val map : BetTicketResponse = mapper.readValue(k)
+                val map: BetTicketResponse = mapper.readValue(k)
                 response1.close()
-                if(map.actionStatus == 0) {
+                if (map.actionStatus == 0 && map.minStake!!.toDouble() <= settings.getGold() && map.currentOdd!!.toDouble() >= settings.minKef) {
                     map.sportBook = sportbook
                     listMap.add(map)
                 }
             } catch (e: Exception) {
-                pageInterractor.sendMessageConsole("Ошибка при парсинге данных о ставке среди контор: " + e.message, pageInterractor.ERROR)
+                pageInterractor.sendMessageConsole("Ошибка при парсинге данных о ставке конторы $sportbook:$o: " + e.message, pageInterractor.ERROR)
             }
         }
 
-        if(listMap.isNotEmpty()) {
+        if (listMap.isNotEmpty()) {
             listMap.sortBy {
                 it.currentOdd
             }
             var i = listMap.count() - 1
             try {
                 while (i > -1) {
-                    if (listMap[i].currentOdd!! >= settings.minKef &&
+                    if (currentState.canBetting &&
                             ((listMap[i].currentOdd!! / item.endRateOver) * 100) - 100 >= settings.minValue &&
                             ((listMap[i].currentOdd!! / item.endRateOver) * 100) - 100 <= settings.maxValue) {
-                        if (listMap[i].minStake!!.toDouble() <= settings.getGold() && currentState.canBetting) {
+
                             val zUn = UUID.randomUUID().toString()
                             val body = FormBody.Builder()
                                     .add("username", "unity_group170")
@@ -211,26 +230,25 @@ class ApiClient: CoroutineScope {
                                 val map : BetPlaceResponse = mapper.readValue(k2)
                                 response2.close()
                                 if(map.actionStatus == 0) {
-                                    pageInterractor.sendMessageConsole(k2, pageInterractor.ACCEPT)
-                                    code(listMap[i].sportBook!!, listMap[i].currentOdd!!, map.id!!)
+                                    bettingEvents.add("${item.matchId}_${item.oddType.name}_${targetType.toUpperCase()} ${item.tymeType}".hashCode())
+                                    pageInterractor.sendMessageConsole(k2+" : ${listMap[i].sportBook} :$o", pageInterractor.ACCEPT)
                                     i = -1
                                 } else if(map.actionStatus == 14) {
-                                    pageInterractor.sendMessageConsole("Баланс кончился", pageInterractor.IMPORTANT)
+                                    pageInterractor.sendMessageConsole("Баланс кончился:$o $k2", pageInterractor.IMPORTANT)
                                     currentState.state.balance = 0.0
                                     currentState.state.credit = 0.0
                                 } else {
-                                    pageInterractor.sendMessageConsole(k2, pageInterractor.IMPORTANT)
+                                    pageInterractor.sendMessageConsole("$k2:$o", pageInterractor.IMPORTANT)
                                 }
                             } catch (e: Exception) {
-                                pageInterractor.sendMessageConsole("Ошибка при парсинге установки ставки: " + e.message, pageInterractor.ERROR)
+                                pageInterractor.sendMessageConsole("Ошибка при парсинге установки ставки ${listMap[i].sportBook}:$o: " + e.message, pageInterractor.ERROR)
                             }
 
-                        }
                     }
                     i--
                 }
-            } catch (e:Exception) {
-                pageInterractor.sendMessageConsole("Ошибка при поиске валуя: " + e.message, pageInterractor.ERROR)
+            } catch (e: Exception) {
+                pageInterractor.sendMessageConsole("Ошибка при поиске валуя:$o: " + e.message, pageInterractor.ERROR)
             }
         }
     }

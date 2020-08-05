@@ -25,6 +25,7 @@ import org.springframework.stereotype.Component
 import java.util.concurrent.Executors
 import java.util.stream.Stream
 import javax.annotation.PostConstruct
+import kotlin.random.Random
 import kotlin.streams.toList
 
 
@@ -46,13 +47,8 @@ class VoddsController : CoroutineScope, IGettingSnapshotListener {
     @Autowired
     private lateinit var pageInterractor: PageInterractor
 
-    @Autowired
-    private lateinit var placedBetRepository: PlacedBetRepository
-
     val matchList = HashMap<String, Match>()
     val pinOddList = HashMap<String, PinOdd>() // MatchId | PinOdd
-
-    val bettingEvents = HashMap<String, Long>()
 
 
     override val coroutineContext = //backgroundTaskDispatcher
@@ -79,11 +75,8 @@ class VoddsController : CoroutineScope, IGettingSnapshotListener {
 
 
     fun start() = launch {
-        placedBetRepository.findAllBets().map {
-            bettingEvents[it.matchIdent] = it.startTime
-        }
         val factory = SportsFeedFactory()
-        val client = factory.createFromConfigFile("/home/admin/libSportConfig.json")
+        val client = factory.createFromConfigFile("/home/sergey/libSportConfig.json")
         val noFilterIBetMatchFeedView = client.view(SoccerMatch::class.java)
         val myHandler = VoddsEventHandler(this@VoddsController)
         noFilterIBetMatchFeedView.register(myHandler)
@@ -99,21 +92,12 @@ class VoddsController : CoroutineScope, IGettingSnapshotListener {
             matchList[it.id()] = Match(it.id(), it.host(), it.guest(), it.league(), it.startTime())
         }
         val now = DateTime.now().millis / 1000L
-        val k = bettingEvents.filter {
-            it.value < now
-        }.map {
-            it.key
-        }
-        k.forEach {
-            bettingEvents.remove(it)
-        }
         val match = matchList.filter {
             it.value.startTime < now
         }.map { it.key }
         match.forEach {
             matchList.remove(it)
         }
-        placedBetRepository.deleteOldMatches(now)
 //        voddsInterractor.changeMatchList(matchList)
     }
 
@@ -131,9 +115,10 @@ class VoddsController : CoroutineScope, IGettingSnapshotListener {
     fun updateOdd(stream: Stream<SoccerRecord>?) = launch(updateDispatcher) {
         if (stream == null || !currentState.canBetting || !settings.getBetPlacing()) return@launch
         var changeRate: Boolean
-        sendingMessageToConsole("Update ODDs")
+        val o = Random.nextInt( 0, 100)
+        sendingMessageToConsole("Update ODDs Start : $o")
         stream.toList().forEach { record ->
-            if (bettingEvents["${record.matchId()}_${record.pivotType().name}_${record.timeType().name()}"] == null) {
+//            if (api.bettingEvents["${record.matchId()}_${record.pivotType().name}_${record.timeType().name()}"] == null) {
                 if (record.source() == "PIN88" && record.lbType() == LBType.BACK && (record.pivotType() == PivotType.HDP || record.pivotType() == PivotType.TOTAL)) {
                     pinOddList[stringHash(record).toString()]?.let {
 
@@ -156,28 +141,27 @@ class VoddsController : CoroutineScope, IGettingSnapshotListener {
                                 changeRate &&
                                 settings.getBetPlacing()
                         ) {
-                            api.placeBetTicket(
-                                    it
-                            ) { source, currentOdd, idBet ->
-                                bettingEvents["${record.matchId()}_${record.pivotType().name}_${record.timeType().name()}"] = matchList[record.matchId()]?.startTime
-                                        ?: -1
-                                placedBetRepository.savePlacedBet(
-                                        PlacedBetDao(
-                                                "${it.matchId}_${it.pivotType.name}_${it.tymeType}",
-                                                it.endRateOver,
-                                                source,
-                                                currentOdd.toDouble().round(3),
-                                                matchList[it.matchId]?.startTime ?: -1,
-                                                idBet
-                                        )
-                                )
-                            }.join()
+                            api.placeBetTicket(it, o)
+//                            { source, currentOdd, idBet ->
+//                                bettingEvents["${record.matchId()}_${record.pivotType().name}_${record.timeType().name()}"] =
+//                                placedBetRepository.savePlacedBet(
+//                                        PlacedBetDao(
+//                                                "${it.matchId}_${it.pivotType.name}_${it.tymeType}",
+//                                                it.endRateOver,
+//                                                source,
+//                                                currentOdd.toDouble().round(3),
+//                                                matchList[it.matchId]?.startTime ?: -1,
+//                                                idBet
+//                                        )
+//                                )
+//                            }
                         }
 
                     }
                 }
-            }
+//            }
         }
+        sendingMessageToConsole("Update ODDs End : $o")
     }
 
     fun insertPinOdd(stream: Stream<SoccerRecord>?) = launch(updateDispatcher) {

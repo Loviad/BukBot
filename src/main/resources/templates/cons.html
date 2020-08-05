@@ -23,7 +23,7 @@
                                     </div>
                                 </div>
                                 <div class="card-body" style="background-color: #212529!important; color: white!important; font-family: Arial;">
-                                    <div class="direct-chat-messages">
+                                    <div class="direct-chat-messages" ref='messageDisplay'>
                                         <div  v-for="item in messages">{{ item.time }} <span v-bind:class="[item.type]">{{ item.type }}</span> {{ item.message }}</div>
                                     </div>
                                 </div>
@@ -40,7 +40,7 @@
 
 
     <div th:include="~{lte_template :: footer}"></div>
-    <script th:inline="javascript">
+<script th:inline="javascript">
     var apiApp = new Vue({
         el: '#indexPage',
         data: {
@@ -56,9 +56,10 @@
                     if(this.colCountMessages < 100){
                         this.messages.push(data);
                     } else {
-                        this.messages.pop();
-                        this.messages.unshift(data);
+                        this.messages.shift();
+                        this.messages.push(data);
                     }
+                    messageDisplay.scrollTop = 9999;
                 }, false);
 
             }
@@ -69,6 +70,7 @@
             }
         }
     });
+   var messageDisplay = apiApp.$refs.messageDisplay;
 </script>
 
 

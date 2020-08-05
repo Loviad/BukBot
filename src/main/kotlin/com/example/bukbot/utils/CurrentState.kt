@@ -67,6 +67,8 @@ class CurrentState : CoroutineScope {
         var i = 0
         while (true) {
             api.getBalance(state).join()
+            api.getOpenBets(openedBets).join()
+            state.OB = openedBets.get()?.totalResults ?: 0
             hal?.let {
                 state.memory = (((it.memory.available / 1024.0) / 1024.0) / 1024.0).round(2)
             }
@@ -75,8 +77,6 @@ class CurrentState : CoroutineScope {
             }
             i++
             if ( i == 12) {
-                api.getOpenBets(openedBets).join()
-                state.OB = openedBets.get()?.totalResults ?: 0
                 sendStateToTelegram()
                 openedBetsRepository.saveOpenBets(state.OB)
                 i = 0
