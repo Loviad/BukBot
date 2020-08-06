@@ -12,10 +12,7 @@ import com.example.bukbot.data.api.Response.openedbets.OpenedBet
 import com.example.bukbot.data.oddsList.PinOdd
 import com.example.bukbot.data.repositories.PlacedBetRepository
 import com.example.bukbot.domain.interactors.page.PageInterractor
-import com.example.bukbot.utils.CurrentState
-import com.example.bukbot.utils.DatePatterns
-import com.example.bukbot.utils.Settings
-import com.example.bukbot.utils.getAccessToken
+import com.example.bukbot.utils.*
 import org.springframework.stereotype.Component
 import java.io.IOException
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
@@ -79,9 +76,9 @@ class ApiClient : CoroutineScope {
             val map: Balance = mapper.readValue(k)
 
             if (map.actionStatus == 0) {
-                blnc.credit = map.credit!!
-                blnc.balance = map.outstanding!!
-                blnc.pl = map.pl!!
+                blnc.credit = map.credit!!.round(2)
+                blnc.balance = map.outstanding!!.round(2)
+                blnc.pl = map.pl!!.round(2)
             }
             response1.close()
         } catch (e: Exception) {
@@ -182,7 +179,7 @@ class ApiClient : CoroutineScope {
                 val k = response1.body()!!.string()
                 val map: BetTicketResponse = mapper.readValue(k)
                 response1.close()
-                if (map.actionStatus == 0 && map.minStake!!.toDouble() <= settings.getGold() && map.currentOdd!!.toDouble() >= settings.minKef) {
+                if (map.actionStatus == 0 && map.minStake!!.toDouble() <= settings.getGold() && map.currentOdd!!.toDouble() >= settings.minKef && map.currentOdd!!.toDouble() <= 1.3) {
                     map.sportBook = sportbook
                     listMap.add(map)
                 }

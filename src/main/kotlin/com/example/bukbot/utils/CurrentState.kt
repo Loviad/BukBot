@@ -65,9 +65,10 @@ class CurrentState : CoroutineScope {
 
     fun startChecking() = launch {
         var i = 0
+        api.getBalance(state).join()
+        api.getOpenBets(openedBets).join()
+        sendStateToTelegram()
         while (true) {
-            api.getBalance(state).join()
-            api.getOpenBets(openedBets).join()
             state.OB = openedBets.get()?.totalResults ?: 0
             hal?.let {
                 state.memory = (((it.memory.available / 1024.0) / 1024.0) / 1024.0).round(2)
@@ -81,6 +82,8 @@ class CurrentState : CoroutineScope {
                 openedBetsRepository.saveOpenBets(state.OB)
                 i = 0
             }
+            api.getBalance(state)
+            api.getOpenBets(openedBets)
             delay( 5 * 60 * 1000)
         }
     }
@@ -105,7 +108,7 @@ class CurrentState : CoroutineScope {
                 "Баланс: ${state.balance}\n"+
                         "Кредит: ${state.credit}\n"+
                         "Profit/Loss: ${state.pl}\n"+
-                        "OP: ${state.OB}\n"+
+                        "OB: ${state.OB}\n"+
                         "FreeMemory: ${state.memory}"
         )
     }

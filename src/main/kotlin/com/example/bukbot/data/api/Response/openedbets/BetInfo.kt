@@ -8,7 +8,7 @@ class BetInfo(
         val betStake: Double?,
         val returnAmount: Double?,
         val pivotBias: String?,
-        val serverPivot: Double?,
+        val serverPivot: String?,
         val league: String?,
         val serverOdd: Double?,
         val statementTime: String?,
@@ -26,7 +26,7 @@ class BetInfo(
         val betTime: String?,
         val sportbook: String?,
         val eventStart: String?,
-        val betStatus: Int?,
+        val betStatus: String?,
         val oddType: String?,
         val targetType: String?
 )

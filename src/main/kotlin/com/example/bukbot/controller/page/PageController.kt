@@ -432,7 +432,7 @@ class PageController : CoroutineScope,
                                     MediaType.APPLICATION_JSON)
                     emitter.value.send(k)
 
-                } catch (ioe: IOException) {
+                } catch (ioe: Exception) {
                     emittersData.remove(emitter.key)
                 }
             }
@@ -450,7 +450,7 @@ class PageController : CoroutineScope,
                                     MediaType.APPLICATION_JSON)
                     emitter.value.send(k)
 
-                } catch (ioe: IOException) {
+                } catch (ioe: Exception) {
                     emittersData.remove(emitter.key)
                 }
             }
@@ -468,7 +468,7 @@ class PageController : CoroutineScope,
 
                     emitter.value.send(k)
 
-                } catch (ioe: IOException) {
+                } catch (ioe: Exception) {
                     emittersData.remove(emitter.key)
                 }
             }
@@ -487,7 +487,7 @@ class PageController : CoroutineScope,
 
                     emitter.value.send(k)
 
-                } catch (ioe: IOException) {
+                } catch (ioe: Exception) {
                     emittersData.remove(emitter.key)
                 }
             }
@@ -505,7 +505,7 @@ class PageController : CoroutineScope,
 
                     emitter.value.send(k)
 
-                } catch (ioe: IOException) {
+                } catch (ioe: Exception) {
                     emittersData.remove(emitter.key)
                 }
             }

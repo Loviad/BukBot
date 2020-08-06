@@ -25,7 +25,6 @@ class PlacedBetRepository {
         mongoTemplate.db.createCollection("placedBets")
     }
 
-    @PostConstruct
     fun findCollections() {
         val k = mongoTemplate.db.listCollectionNames()
         val collections = k.filter {

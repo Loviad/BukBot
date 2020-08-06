@@ -47,7 +47,7 @@ class VoddsController : CoroutineScope, IGettingSnapshotListener {
     @Autowired
     private lateinit var pageInterractor: PageInterractor
 
-    val matchList = HashMap<String, Match>()
+//    val matchList = HashMap<String, Match>()
     val pinOddList = HashMap<String, PinOdd>() // MatchId | PinOdd
 
 
@@ -76,7 +76,7 @@ class VoddsController : CoroutineScope, IGettingSnapshotListener {
 
     fun start() = launch {
         val factory = SportsFeedFactory()
-        val client = factory.createFromConfigFile("/home/sergey/libSportConfig.json")
+        val client = factory.createFromConfigFile("/home/admin/libSportConfig.json")
         val noFilterIBetMatchFeedView = client.view(SoccerMatch::class.java)
         val myHandler = VoddsEventHandler(this@VoddsController)
         noFilterIBetMatchFeedView.register(myHandler)
@@ -88,16 +88,16 @@ class VoddsController : CoroutineScope, IGettingSnapshotListener {
     fun insertMatches(stream: Stream<SoccerMatch>?) = launch(updateDispatcher) {
         if (stream == null) return@launch
         sendingMessageToConsole("Insert Matches")
-        stream.forEach {
-            matchList[it.id()] = Match(it.id(), it.host(), it.guest(), it.league(), it.startTime())
-        }
-        val now = DateTime.now().millis / 1000L
-        val match = matchList.filter {
-            it.value.startTime < now
-        }.map { it.key }
-        match.forEach {
-            matchList.remove(it)
-        }
+//        stream.forEach {
+//            matchList[it.id()] = Match(it.id(), it.host(), it.guest(), it.league(), it.startTime())
+//        }
+//        val now = DateTime.now().millis / 1000L
+//        val match = matchList.filter {
+//            it.value.startTime < now
+//        }.map { it.key }
+//        match.forEach {
+//            matchList.remove(it)
+//        }
 //        voddsInterractor.changeMatchList(matchList)
     }
 
