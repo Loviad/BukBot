@@ -1,9 +1,6 @@
 package com.example.bukbot.controller.vodds
 
-import com.example.bukbot.data.SSEModel.Match
-import com.example.bukbot.data.database.Dao.PlacedBetDao
 import com.example.bukbot.data.oddsList.PinOdd
-import com.example.bukbot.data.repositories.PlacedBetRepository
 import com.example.bukbot.domain.interactors.page.PageInterractor
 import com.example.bukbot.domain.interactors.vodds.VoddsInterractor
 import com.example.bukbot.service.events.IGettingSnapshotListener
@@ -19,7 +16,6 @@ import jayeson.lib.sports.client.SportsFeedFactory
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.launch
-import org.joda.time.DateTime
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Component
 import java.util.concurrent.Executors

@@ -1,6 +1,7 @@
 package com.example.bukbot
 
 import com.example.bukbot.utils.threadfabrick.ApiThreadFactory
+import com.example.bukbot.utils.threadfabrick.BetsThreadFactory
 import com.example.bukbot.utils.threadfabrick.StateThreadFactory
 import com.loviad.bukbot.utils.BackgroundTaskThreadFactory
 import com.loviad.bukbot.utils.OrderedTaskThreadFactory
@@ -33,6 +34,10 @@ class BukBotApplication {
 
 		var orderedStateTaskDispatcher = Executors.newSingleThreadExecutor(
 				StateThreadFactory()
+		).asCoroutineDispatcher()
+
+		val orderedBetsTaskDispatcher = Executors.newSingleThreadExecutor(
+				BetsThreadFactory()
 		).asCoroutineDispatcher()
 
 		@JvmStatic

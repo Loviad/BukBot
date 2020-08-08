@@ -2,6 +2,7 @@ package com.example.bukbot.service.rest
 
 import com.example.bukbot.BukBotApplication.Companion.backgroundTaskDispatcher
 import com.example.bukbot.BukBotApplication.Companion.orderedApiTaskDispatcher
+import com.example.bukbot.BukBotApplication.Companion.orderedBetsTaskDispatcher
 import com.example.bukbot.controller.vodds.VoddsController
 import com.example.bukbot.data.SSEModel.ConsoleMessage
 import com.example.bukbot.data.SSEModel.CurrentStateSSEModel
@@ -26,7 +27,10 @@ import org.joda.time.DateTimeZone
 import org.joda.time.format.DateTimeFormat
 import org.springframework.beans.factory.annotation.Autowired
 import java.util.*
+import javax.annotation.PostConstruct
 import kotlin.collections.ArrayList
+import kotlin.collections.HashMap
+import kotlin.collections.HashSet
 
 
 @Component
@@ -49,10 +53,40 @@ class ApiClient : CoroutineScope {
     @Autowired
     private lateinit var placedBetRepository: PlacedBetRepository
 
-    var bettingEvents: ArrayList<Int> = arrayListOf()
+    //    var bettingEvents: ArrayList<Int> = arrayListOf()
+    var bettingEvents: HashSet<String> = HashSet()
+
+    private val biasType = HashMap<String, String>()
+
+    @PostConstruct
+    fun firstStart() {
+        biasType["HOME FT"] = "HDP FT"
+        biasType["AWAY FT"] = "HDP FT"
+        biasType["HOME HT"] = "HDP HT"
+        biasType["AWAY HT"] = "HDP HT"
+        biasType["OVER HT"] = "TOTAL HT"
+        biasType["UNDER HT"] = "TOTAL HT"
+        biasType["OVER FT"] = "TOTAL FT"
+        biasType["UNDER FT"] = "TOTAL FT"
+    }
 
     override val coroutineContext = orderedApiTaskDispatcher
     val placedDispatcher = backgroundTaskDispatcher
+    val betsDispatcher = orderedBetsTaskDispatcher
+
+    fun containsBets(value: String): Boolean {
+        return bettingEvents.contains(value)
+    }
+
+    fun addBets(value: String): Boolean {
+        bettingEvents.add(value)
+        return true
+    }
+
+    fun replaceBets(map: HashSet<String>): Boolean {
+        bettingEvents = map
+        return true
+    }
 
     @Throws(IOException::class)
     fun getBalance(blnc: CurrentStateSSEModel) = launch(coroutineContext) {
@@ -107,12 +141,16 @@ class ApiClient : CoroutineScope {
             if (map.actionStatus == 0) {
                 openBets.set(map)
                 if (map.betInfos != null && map.betInfos.count() > 0) {
-                    bettingEvents.clear()
-                    bettingEvents.addAll(map.betInfos.map {
-                        "${it.eventId}_${it.oddType}_${it.targetType}".hashCode()
+                    val tempArrayBet = HashSet(map.betInfos.map {
+                        "${it.eventId}_${biasType[it.targetType]}"
                     })
+                    val result = withContext(betsDispatcher) {
+                        replaceBets(tempArrayBet)
+                    }
                 } else if (map.totalResults != null && map.totalResults == 0) {
-                    bettingEvents.clear()
+                    val result = withContext(betsDispatcher) {
+                        replaceBets(HashSet<String>())
+                    }
                 }
             }
         } catch (e: Exception) {
@@ -121,8 +159,7 @@ class ApiClient : CoroutineScope {
     }
 
     fun test() {
-        val date = DateTime.parse("22/10/2011",
-                DateTimeFormat.forPattern("dd/MM/yyyy"))
+        val date = DateTime.parse("22/10/2011", DateTimeFormat.forPattern("dd/MM/yyyy"))
         println(DateTime.now(DateTimeZone.UTC).millis)
     }
 
@@ -150,7 +187,11 @@ class ApiClient : CoroutineScope {
             }
         }
 
-        if (bettingEvents.contains("${item.matchId}_${item.oddType.name}_${targetType.toUpperCase()} ${item.tymeType}".hashCode())) {
+        val result = withContext(betsDispatcher) {
+            containsBets("${item.matchId}_${biasType["${targetType.toUpperCase()} ${item.tymeType}"]}")
+        }
+
+        if (result) {
             pageInterractor.sendMessageConsole("Пропуск дублирующей ставки:$o", pageInterractor.ACCEPT)
             return@launch
         }
@@ -199,48 +240,50 @@ class ApiClient : CoroutineScope {
                             ((listMap[i].currentOdd!! / item.endRateOver) * 100) - 100 >= settings.minValue &&
                             ((listMap[i].currentOdd!! / item.endRateOver) * 100) - 100 <= settings.maxValue) {
 
-                            val zUn = UUID.randomUUID().toString()
-                            val body = FormBody.Builder()
-                                    .add("username", "unity_group170")
-                                    .add("accessToken", getAccessToken()!!)
-                                    .add("reqId", zUn)
-                                    .add("company", listMap[i].sportBook!!)
-                                    .add("targetType", targetType)
-                                    .add("sportType", "soccer")
-                                    .add("matchId", item.matchId)
-                                    .add("eventId", item.eventId)
-                                    .add("recordId", item.recordId.toString())
-                                    .add("targetOdd", listMap[i].currentOdd!!.toString())
-                                    .add("gold", settings.getGold().toString())
-                                    .add("acceptBetterOdd", true.toString())
-                                    .add("autoStakeAdjustment", false.toString())
+                        val zUn = UUID.randomUUID().toString()
+                        val body = FormBody.Builder().add("username", "unity_group170")
+                                .add("accessToken", getAccessToken()!!)
+                                .add("reqId", zUn)
+                                .add("company", listMap[i].sportBook!!)
+                                .add("targetType", targetType)
+                                .add("sportType", "soccer")
+                                .add("matchId", item.matchId)
+                                .add("eventId", item.eventId)
+                                .add("recordId", item.recordId.toString())
+                                .add("targetOdd", listMap[i].currentOdd!!.toString())
+                                .add("gold", settings.getGold().toString())
+                                .add("acceptBetterOdd", true.toString())
+                                .add("autoStakeAdjustment", false.toString())
 //                                    .add("maxAutoStakeAdjustment", false.toString())
-                                    .build()
-                            val request2 = Request.Builder()
-                                    .addHeader("ContentType", "application/x-www-form-urlencoded")
-                                    .url("${settings.urlApi}/placebet")
-                                    .post(body)
-                                    .build()
-                            try {
-                                val response2 = client.newCall(request2).execute()
-                                val k2 = response2.body()!!.string()
-                                val map : BetPlaceResponse = mapper.readValue(k2)
-                                response2.close()
-                                if(map.actionStatus == 0) {
-                                    bettingEvents.add("${item.matchId}_${item.oddType.name}_${targetType.toUpperCase()} ${item.tymeType}".hashCode())
-                                    pageInterractor.sendMessageConsole(k2+" : ${listMap[i].sportBook} :$o", pageInterractor.ACCEPT)
-                                    i = -1
-                                } else if(map.actionStatus == 14) {
-                                    pageInterractor.sendMessageConsole("Баланс кончился:$o $k2", pageInterractor.IMPORTANT)
-                                    currentState.state.balance = 0.0
-                                    currentState.state.credit = 0.0
-                                } else {
-                                    pageInterractor.sendMessageConsole("$k2:$o", pageInterractor.IMPORTANT)
-                                }
-                            } catch (e: Exception) {
-                                pageInterractor.sendMessageConsole("Ошибка при парсинге установки ставки ${listMap[i].sportBook}:$o: " + e.message, pageInterractor.ERROR)
+                                .build()
+                        val request2 = Request.Builder().addHeader("ContentType", "application/x-www-form-urlencoded")
+                                .url("${settings.urlApi}/placebet")
+                                .post(body)
+                                .build()
+                        try {
+                            val response2 = client.newCall(request2).execute()
+                            val k2 = response2.body()!!.string()
+                            val map: BetPlaceResponse = mapper.readValue(k2)
+                            response2.close()
+                            if (map.actionStatus == 0) {
+                                pageInterractor.sendMessageConsole(k2 + " : ${listMap[i].sportBook} :$o", pageInterractor.ACCEPT)
+                            } else if (map.actionStatus == 14) {
+                                pageInterractor.sendMessageConsole("Баланс кончился:$o $k2", pageInterractor.IMPORTANT)
+                                currentState.state.balance = 0.0
+                                currentState.state.credit = 0.0
+                            } else {
+                                pageInterractor.sendMessageConsole("$k2:$o", pageInterractor.IMPORTANT)
                             }
+//                              bettingEvents.add("${item.matchId}_${item.oddType.name}_${targetType.toUpperCase()} ${item.tymeType}".hashCode())
 
+                        } catch (e: Exception) {
+                            pageInterractor.sendMessageConsole("Ошибка при парсинге установки ставки ${listMap[i].sportBook}:$o: " + e.message, pageInterractor.ERROR)
+                        }
+
+                        val result = withContext(betsDispatcher) {
+                            addBets("${item.matchId}_${biasType["${targetType.toUpperCase()} ${item.tymeType}"]}")
+                        }
+                        i = -1
                     }
                     i--
                 }

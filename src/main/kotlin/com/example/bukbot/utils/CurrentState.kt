@@ -63,10 +63,11 @@ class CurrentState : CoroutineScope {
         startChecking()
     }
 
-    fun startChecking() = launch {
+    fun startChecking() = launch(coroutineContext) {
         var i = 0
         api.getBalance(state).join()
         api.getOpenBets(openedBets).join()
+        state.OB = openedBets.get()?.totalResults ?: 0
         sendStateToTelegram()
         while (true) {
             state.OB = openedBets.get()?.totalResults ?: 0

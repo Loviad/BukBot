@@ -53,6 +53,7 @@
                                     <tr>
                                         <th>Время ставки</th>
                                         <th>ID</th>
+                                        <th>Лига</th>
                                         <th>Дом</th>
                                         <th>Гости</th>
                                         <th>Контора</th>
@@ -68,6 +69,7 @@
                                     <tr  v-for="item in openedBets">
                                         <td>{{ item.betTime }}</td>
                                         <td>{{ item.id }}</td>
+                                        <td>{{ item.league }}</td>
                                         <td>{{ item.homeTeam }}</td>
                                         <td>{{ item.awayTeam }}</td>
                                         <td>{{ item.sportbook }}</td>
@@ -83,6 +85,7 @@
                                     <tr>
                                         <th>Время ставки</th>
                                         <th>ID</th>
+                                        <th>Лига</th>
                                         <th>Дом</th>
                                         <th>Гости</th>
                                         <th>Контора</th>
@@ -209,7 +212,7 @@
                   options: salesGraphChartOptions
                 }
           );
-          var xAxisLabelMinWidth = 30;
+          var xAxisLabelMinWidth = 15;
           function fitChart(){
                 var chartCanvas = document.getElementById('line-chart');
                 var maxWidth = chartCanvas.parentElement.parentElement.clientWidth;
