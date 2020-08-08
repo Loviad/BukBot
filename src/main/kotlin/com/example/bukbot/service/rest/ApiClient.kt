@@ -14,6 +14,8 @@ import com.example.bukbot.data.oddsList.PinOdd
 import com.example.bukbot.data.repositories.PlacedBetRepository
 import com.example.bukbot.domain.interactors.page.PageInterractor
 import com.example.bukbot.utils.*
+import com.example.bukbot.utils.threadfabrick.BetsThreadFactory
+import com.example.bukbot.utils.threadfabrick.PlaceBedThreadFactory
 import org.springframework.stereotype.Component
 import java.io.IOException
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
@@ -27,6 +29,7 @@ import org.joda.time.DateTimeZone
 import org.joda.time.format.DateTimeFormat
 import org.springframework.beans.factory.annotation.Autowired
 import java.util.*
+import java.util.concurrent.Executors
 import javax.annotation.PostConstruct
 import kotlin.collections.ArrayList
 import kotlin.collections.HashMap
@@ -73,6 +76,9 @@ class ApiClient : CoroutineScope {
     override val coroutineContext = orderedApiTaskDispatcher
     val placedDispatcher = backgroundTaskDispatcher
     val betsDispatcher = orderedBetsTaskDispatcher
+    val placeDispatcher = Executors.newSingleThreadExecutor(
+            PlaceBedThreadFactory()
+    ).asCoroutineDispatcher()
 
     fun containsBets(value: String): Boolean {
         return bettingEvents.contains(value)
@@ -187,15 +193,6 @@ class ApiClient : CoroutineScope {
             }
         }
 
-        val result = withContext(betsDispatcher) {
-            containsBets("${item.matchId}_${biasType["${targetType.toUpperCase()} ${item.tymeType}"]}")
-        }
-
-        if (result) {
-            pageInterractor.sendMessageConsole("Пропуск дублирующей ставки:$o", pageInterractor.ACCEPT)
-            return@launch
-        }
-
         val listMap = ArrayList<BetTicketResponse>()
         settings.sportbookList.forEach { sportbook ->
             val zUn = UUID.randomUUID().toString()
@@ -220,7 +217,10 @@ class ApiClient : CoroutineScope {
                 val k = response1.body()!!.string()
                 val map: BetTicketResponse = mapper.readValue(k)
                 response1.close()
-                if (map.actionStatus == 0 && map.minStake!!.toDouble() <= settings.getGold() && map.currentOdd!!.toDouble() >= settings.minKef && map.currentOdd!!.toDouble() <= 1.3) {
+                if (map.actionStatus == 0 &&
+                        map.minStake!!.toDouble() <= settings.getGold() &&
+                        map.currentOdd!!.toDouble() >= settings.minKef &&
+                        map.currentOdd!!.toDouble() <= 1.3) {
                     map.sportBook = sportbook
                     listMap.add(map)
                 }
@@ -235,61 +235,87 @@ class ApiClient : CoroutineScope {
             }
             var i = listMap.count() - 1
             try {
-                while (i > -1) {
                     if (currentState.canBetting &&
                             ((listMap[i].currentOdd!! / item.endRateOver) * 100) - 100 >= settings.minValue &&
                             ((listMap[i].currentOdd!! / item.endRateOver) * 100) - 100 <= settings.maxValue) {
-
-                        val zUn = UUID.randomUUID().toString()
-                        val body = FormBody.Builder().add("username", "unity_group170")
-                                .add("accessToken", getAccessToken()!!)
-                                .add("reqId", zUn)
-                                .add("company", listMap[i].sportBook!!)
-                                .add("targetType", targetType)
-                                .add("sportType", "soccer")
-                                .add("matchId", item.matchId)
-                                .add("eventId", item.eventId)
-                                .add("recordId", item.recordId.toString())
-                                .add("targetOdd", listMap[i].currentOdd!!.toString())
-                                .add("gold", settings.getGold().toString())
-                                .add("acceptBetterOdd", true.toString())
-                                .add("autoStakeAdjustment", false.toString())
-//                                    .add("maxAutoStakeAdjustment", false.toString())
-                                .build()
-                        val request2 = Request.Builder().addHeader("ContentType", "application/x-www-form-urlencoded")
-                                .url("${settings.urlApi}/placebet")
-                                .post(body)
-                                .build()
-                        try {
-                            val response2 = client.newCall(request2).execute()
-                            val k2 = response2.body()!!.string()
-                            val map: BetPlaceResponse = mapper.readValue(k2)
-                            response2.close()
-                            if (map.actionStatus == 0) {
-                                pageInterractor.sendMessageConsole(k2 + " : ${listMap[i].sportBook} :$o", pageInterractor.ACCEPT)
-                            } else if (map.actionStatus == 14) {
-                                pageInterractor.sendMessageConsole("Баланс кончился:$o $k2", pageInterractor.IMPORTANT)
-                                currentState.state.balance = 0.0
-                                currentState.state.credit = 0.0
-                            } else {
-                                pageInterractor.sendMessageConsole("$k2:$o", pageInterractor.IMPORTANT)
-                            }
-//                              bettingEvents.add("${item.matchId}_${item.oddType.name}_${targetType.toUpperCase()} ${item.tymeType}".hashCode())
-
-                        } catch (e: Exception) {
-                            pageInterractor.sendMessageConsole("Ошибка при парсинге установки ставки ${listMap[i].sportBook}:$o: " + e.message, pageInterractor.ERROR)
-                        }
-
-                        val result = withContext(betsDispatcher) {
-                            addBets("${item.matchId}_${biasType["${targetType.toUpperCase()} ${item.tymeType}"]}")
-                        }
-                        i = -1
+                        placeBet(
+                                item.tymeType,
+                                listMap[i].sportBook!!,
+                                targetType,
+                                item.matchId,
+                                item.eventId,
+                                item.recordId.toString(),
+                                listMap[i].currentOdd!!.toString(),
+                                o
+                        )
                     }
-                    i--
-                }
             } catch (e: Exception) {
                 pageInterractor.sendMessageConsole("Ошибка при поиске валуя:$o: " + e.message, pageInterractor.ERROR)
             }
+        }
+    }
+
+    fun placeBet(
+        timeType: String,
+        company: String,
+        targetType: String,
+        matchId: String,
+        eventId: String,
+        recordId: String,
+        targetOdd: String,
+        threadNumber: Int
+    ) = launch(placeDispatcher) {
+        val result = withContext(betsDispatcher) {
+            containsBets("${matchId}_${biasType["${targetType.toUpperCase()} ${timeType}"]}")
+        }
+
+        if (result) {
+            pageInterractor.sendMessageConsole("Пропуск дублирующей ставки:$threadNumber", pageInterractor.ACCEPT)
+            return@launch
+        }
+
+        val zUn = UUID.randomUUID().toString()
+        val body = FormBody.Builder()
+                .add("username", "unity_group170")
+                .add("accessToken", getAccessToken()!!)
+                .add("reqId", zUn)
+                .add("company", company)
+                .add("targetType", targetType)
+                .add("sportType", "soccer")
+                .add("matchId", matchId)
+                .add("eventId", eventId)
+                .add("recordId", recordId)
+                .add("targetOdd", targetOdd)
+                .add("gold", settings.getGold().toString())
+                .add("acceptBetterOdd", true.toString())
+                .add("autoStakeAdjustment", false.toString())
+//              .add("maxAutoStakeAdjustment", false.toString())
+                .build()
+        val request2 = Request.Builder().addHeader("ContentType", "application/x-www-form-urlencoded")
+                .url("${settings.urlApi}/placebet")
+                .post(body)
+                .build()
+        try {
+            val response2 = client.newCall(request2).execute()
+            val k2 = response2.body()!!.string()
+            val map: BetPlaceResponse = mapper.readValue(k2)
+            response2.close()
+            if (map.actionStatus == 0) {
+                pageInterractor.sendMessageConsole(k2 + " : ${company} :$threadNumber", pageInterractor.ACCEPT)
+            } else if (map.actionStatus == 14) {
+                pageInterractor.sendMessageConsole("Баланс кончился:$threadNumber $k2", pageInterractor.IMPORTANT)
+                currentState.state.balance = 0.0
+                currentState.state.credit = 0.0
+            } else {
+                pageInterractor.sendMessageConsole("$k2:$threadNumber", pageInterractor.IMPORTANT)
+            }
+
+            val result = withContext(betsDispatcher) {
+                addBets("${matchId}_${biasType["${targetType.toUpperCase()} ${timeType}"]}")
+            }
+//          bettingEvents.add("${item.matchId}_${item.oddType.name}_${targetType.toUpperCase()} ${item.tymeType}".hashCode())
+        } catch (e: Exception) {
+            pageInterractor.sendMessageConsole("Ошибка при парсинге установки ставки ${company}:$threadNumber: " + e.message, pageInterractor.ERROR)
         }
     }
 }
