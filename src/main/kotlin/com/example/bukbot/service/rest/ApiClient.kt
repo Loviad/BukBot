@@ -251,6 +251,7 @@ class ApiClient : CoroutineScope {
                     }
             } catch (e: Exception) {
                 pageInterractor.sendMessageConsole("Ошибка при поиске валуя:$o: " + e.message, pageInterractor.ERROR)
+                return@launch
             }
         }
     }

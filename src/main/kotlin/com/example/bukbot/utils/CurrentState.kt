@@ -6,6 +6,7 @@ import com.example.bukbot.data.api.Response.openedbets.BetInfo
 import com.example.bukbot.data.api.Response.openedbets.OpenedBet
 import com.example.bukbot.data.database.Dao.OpenBets
 import com.example.bukbot.data.repositories.OpenedBetsRepository
+import com.example.bukbot.domain.interactors.page.PageInterractor
 import com.example.bukbot.service.events.CurStateEvent
 import com.example.bukbot.service.events.VoddsEvents
 import com.example.bukbot.service.rest.ApiClient
@@ -30,6 +31,8 @@ class CurrentState : CoroutineScope {
     private lateinit var settings: Settings
     @Autowired
     private lateinit var openedBetsRepository: OpenedBetsRepository
+    @Autowired
+    private lateinit var pageInterractor: PageInterractor
 
     override val coroutineContext = BukBotApplication.orderedStateTaskDispatcher
     private val eventListener = ArrayList<VoddsEvents>()
@@ -70,22 +73,29 @@ class CurrentState : CoroutineScope {
         state.OB = openedBets.get()?.totalResults ?: 0
         sendStateToTelegram()
         while (true) {
-            state.OB = openedBets.get()?.totalResults ?: 0
-            hal?.let {
-                state.memory = (((it.memory.available / 1024.0) / 1024.0) / 1024.0).round(2)
-            }
-            sendEvents<CurStateEvent> {
-                it.updateState(state)
+            try {
+                state.OB = openedBets.get()?.totalResults ?: 0
+//                hal?.let {
+//                    state.memory = (((it.memory.available / 1024.0) / 1024.0) / 1024.0).round(2)
+//                }
+                sendEvents<CurStateEvent> {
+                    it.updateState(state)
+                }
+
+                if (i >= 12) {
+                    i = 0
+                    pageInterractor.sendMessageConsole("Send STATE to TELEGRAM", pageInterractor.IMPORTANT)
+                    openedBetsRepository.saveOpenBets(state.OB)
+                    sendStateToTelegram()
+                }
+                api.getBalance(state).join()
+                api.getOpenBets(openedBets).join()
+            } catch (e:Exception) {
+                pageInterractor.sendMessageConsole("EXEPT in STATE_CHECKER", pageInterractor.ERROR)
             }
             i++
-            if ( i == 12) {
-                sendStateToTelegram()
-                openedBetsRepository.saveOpenBets(state.OB)
-                i = 0
-            }
-            api.getBalance(state)
-            api.getOpenBets(openedBets)
             delay( 5 * 60 * 1000)
+            pageInterractor.sendMessageConsole("TIMEOUT 5 MIN IS DELAY i=$i teleg is null= ${telegBot == null}", pageInterractor.IMPORTANT)
         }
     }
 

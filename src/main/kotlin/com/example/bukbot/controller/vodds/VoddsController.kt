@@ -1,5 +1,6 @@
 package com.example.bukbot.controller.vodds
 
+import com.example.bukbot.BukBotApplication.Companion.backgroundUpdateTaskDispatcher
 import com.example.bukbot.data.oddsList.PinOdd
 import com.example.bukbot.domain.interactors.page.PageInterractor
 import com.example.bukbot.domain.interactors.vodds.VoddsInterractor
@@ -16,6 +17,7 @@ import jayeson.lib.sports.client.SportsFeedFactory
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.launch
+import org.joda.time.DateTime
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Component
 import java.util.concurrent.Executors
@@ -52,10 +54,8 @@ class VoddsController : CoroutineScope, IGettingSnapshotListener {
                     VoddsThreadFactory()
             ).asCoroutineDispatcher()
 
-    private val updateDispatcher = //backgroundTaskDispatcher
-            Executors.newSingleThreadExecutor(
-                    UpdateVoddsThreadFactory()
-            ).asCoroutineDispatcher()
+    private val updateDispatcher = backgroundUpdateTaskDispatcher
+
 
 
     @PostConstruct
@@ -72,7 +72,7 @@ class VoddsController : CoroutineScope, IGettingSnapshotListener {
 
     fun start() = launch {
         val factory = SportsFeedFactory()
-        val client = factory.createFromConfigFile("/home/admin/libSportConfig.json")
+        val client = factory.createFromConfigFile("D:\\win\\libSportConfig.json")
         val noFilterIBetMatchFeedView = client.view(SoccerMatch::class.java)
         val myHandler = VoddsEventHandler(this@VoddsController)
         noFilterIBetMatchFeedView.register(myHandler)
@@ -109,11 +109,12 @@ class VoddsController : CoroutineScope, IGettingSnapshotListener {
 
 
     fun updateOdd(stream: Stream<SoccerRecord>?) = launch(updateDispatcher) {
-        if (stream == null || !currentState.canBetting || !settings.getBetPlacing()) return@launch
-        var changeRate: Boolean
-        val o = Random.nextInt( 0, 100)
-        sendingMessageToConsole("Update ODDs Start : $o")
-        stream.toList().forEach { record ->
+        if (stream != null && currentState.canBetting && settings.getBetPlacing()) {
+            var changeRate: Boolean
+            val o = Random.nextInt(0, 100)
+            val timeUpdate = DateTime.now().toString(DatePatterns.DAY_MONTH_YEAR_TIME)
+            sendingMessageToConsole("Update ODDs Start $timeUpdate: $o")
+            stream.toList().forEach { record ->
 //            if (api.bettingEvents["${record.matchId()}_${record.pivotType().name}_${record.timeType().name()}"] == null) {
                 if (record.source() == "PIN88" && record.lbType() == LBType.BACK && (record.pivotType() == PivotType.HDP || record.pivotType() == PivotType.TOTAL)) {
                     pinOddList[stringHash(record).toString()]?.let {
@@ -125,39 +126,21 @@ class VoddsController : CoroutineScope, IGettingSnapshotListener {
                             it.endRateOver = record.rateOver().toDouble().round(3)
                         }
 
-                        if (
-                                (it.startRateUnder - record.rateUnder().toDouble()).round(3) >= settings.deltaPIN88 &&
-                                ((it.startRateOver - record.rateOver().toDouble()).round(3) < (it.startRateUnder - record.rateUnder().toDouble()).round(3) || !changeRate)
-                        ) {
+                        if ((it.startRateUnder - record.rateUnder().toDouble()).round(3) >= settings.deltaPIN88 && ((it.startRateOver - record.rateOver().toDouble()).round(3) < (it.startRateUnder - record.rateUnder().toDouble()).round(3) || !changeRate)) {
                             changeRate = true
                             it.targetPivot = TargetPivot.UNDER
                             it.endRateOver = record.rateUnder().toDouble().round(3)
                         }
-                        if (
-                                changeRate &&
-                                settings.getBetPlacing()
-                        ) {
+                        if (changeRate && settings.getBetPlacing()) {
                             api.placeBetTicket(it, o)
-//                            { source, currentOdd, idBet ->
-//                                bettingEvents["${record.matchId()}_${record.pivotType().name}_${record.timeType().name()}"] =
-//                                placedBetRepository.savePlacedBet(
-//                                        PlacedBetDao(
-//                                                "${it.matchId}_${it.pivotType.name}_${it.tymeType}",
-//                                                it.endRateOver,
-//                                                source,
-//                                                currentOdd.toDouble().round(3),
-//                                                matchList[it.matchId]?.startTime ?: -1,
-//                                                idBet
-//                                        )
-//                                )
-//                            }
                         }
 
                     }
                 }
 //            }
+            }
+            sendingMessageToConsole("Update ODDs End $timeUpdate: $o")
         }
-        sendingMessageToConsole("Update ODDs End : $o")
     }
 
     fun insertPinOdd(stream: Stream<SoccerRecord>?) = launch(updateDispatcher) {

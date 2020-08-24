@@ -24,6 +24,11 @@ class BukBotApplication {
 				TimeUnit.SECONDS, SynchronousQueue<Runnable>(), BackgroundTaskThreadFactory()
 		).asCoroutineDispatcher()
 
+		var backgroundUpdateTaskDispatcher = ThreadPoolExecutor(
+				2, 12, 60L,
+				TimeUnit.SECONDS, SynchronousQueue<Runnable>(), BackgroundTaskThreadFactory()
+		).asCoroutineDispatcher()
+
 		var orderedBackgroundTaskDispatcher = Executors.newSingleThreadExecutor(
 				OrderedTaskThreadFactory("OrderedBackgroundTaskThread")
 		).asCoroutineDispatcher()

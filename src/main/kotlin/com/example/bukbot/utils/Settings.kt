@@ -30,9 +30,6 @@ class Settings {
     var balanceBetting: Boolean = false
     var creditBetting: Boolean = false
     var saveBalance: Double = 0.0
-
-    private var notPaused: Boolean = true
-
 //    var urlApi: String = "https://biweb-unity.stagingunity.com/v2"
 
     private val eventListener = ArrayList<SettingEvents>()
@@ -69,7 +66,7 @@ class Settings {
         GOLD = value
     }
 
-    fun getBetPlacing(): Boolean = BET_PLACING && notPaused
+    fun getBetPlacing(): Boolean = BET_PLACING
 
     fun setGettingSnapshot(value: Boolean){
         GETTING_SNAPSHOT = value
@@ -78,18 +75,13 @@ class Settings {
         }
     }
 
-    fun pause(){
-        notPaused = false
-    }
-
     fun start() {
-        notPaused = true
         sendEvents<IGettingSnapshotListener> {
             if (GETTING_SNAPSHOT) it.onGettingSnapshotChange(true)
         }
     }
 
-    fun getGettingSnapshot(): Boolean = GETTING_SNAPSHOT && notPaused
+    fun getGettingSnapshot(): Boolean = GETTING_SNAPSHOT
 
     fun getSnapState(): Boolean = GETTING_SNAPSHOT
 
