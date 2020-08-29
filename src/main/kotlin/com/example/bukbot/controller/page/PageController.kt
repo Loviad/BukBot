@@ -141,6 +141,11 @@ class PageController : CoroutineScope,
         model.addAttribute("id", authentication.name)
         return "valuebets"
     }
+    @GetMapping("/analitics")
+    fun analiticsPage(model: Model, authentication: Authentication): String {
+        model.addAttribute("id", authentication.name)
+        return "analitics"
+    }
 
     @GetMapping("/apitest")
     fun apiTestPage(model: Model, authentication: Authentication): String {
@@ -203,6 +208,15 @@ class PageController : CoroutineScope,
                      @RequestParam(required = false) creditBetting: Boolean
     ) {
         settings.setSettings(urlApi, gold, deltaPIN, minKef, minValue, maxValue, balanceBetting, creditBetting, saveBalance)
+    }
+
+    @PostMapping(path = ["/initstatistic"])
+    @ResponseStatus(HttpStatus.OK)
+    fun initStatistic(@RequestBody note: String,
+                     @RequestParam(required = false) startDate: String,
+                     @RequestParam(required = false) endDate: String
+    ) {
+        currentState.getStatistic(startDate, endDate)
     }
 
     private fun getToken() {

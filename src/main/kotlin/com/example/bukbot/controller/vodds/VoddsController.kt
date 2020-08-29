@@ -44,8 +44,6 @@ class VoddsController : CoroutineScope, IGettingSnapshotListener {
 
     @Autowired
     private lateinit var pageInterractor: PageInterractor
-
-//    val matchList = HashMap<String, Match>()
     val pinOddList = HashMap<String, PinOdd>() // MatchId | PinOdd
 
 
@@ -84,27 +82,11 @@ class VoddsController : CoroutineScope, IGettingSnapshotListener {
     fun insertMatches(stream: Stream<SoccerMatch>?) = launch(updateDispatcher) {
         if (stream == null) return@launch
         sendingMessageToConsole("Insert Matches")
-//        stream.forEach {
-//            matchList[it.id()] = Match(it.id(), it.host(), it.guest(), it.league(), it.startTime())
-//        }
-//        val now = DateTime.now().millis / 1000L
-//        val match = matchList.filter {
-//            it.value.startTime < now
-//        }.map { it.key }
-//        match.forEach {
-//            matchList.remove(it)
-//        }
-//        voddsInterractor.changeMatchList(matchList)
     }
 
     fun deleteMatches(stream: Stream<SoccerMatch>?) = launch(updateDispatcher) {
         if (stream == null) return@launch
         sendingMessageToConsole("Delete Matches")
-//        stream.forEach { match ->
-//            matchList.remove(match.id())
-//        }
-
-//        voddsInterractor.changeMatchList(matchList)
     }
 
 
@@ -115,7 +97,6 @@ class VoddsController : CoroutineScope, IGettingSnapshotListener {
             val timeUpdate = DateTime.now().toString(DatePatterns.DAY_MONTH_YEAR_TIME)
             sendingMessageToConsole("Update ODDs Start $timeUpdate: $o")
             stream.toList().forEach { record ->
-//            if (api.bettingEvents["${record.matchId()}_${record.pivotType().name}_${record.timeType().name()}"] == null) {
                 if (record.source() == "PIN88" && record.lbType() == LBType.BACK && (record.pivotType() == PivotType.HDP || record.pivotType() == PivotType.TOTAL)) {
                     pinOddList[stringHash(record).toString()]?.let {
 
@@ -137,7 +118,6 @@ class VoddsController : CoroutineScope, IGettingSnapshotListener {
 
                     }
                 }
-//            }
             }
             sendingMessageToConsole("Update ODDs End $timeUpdate: $o")
         }
@@ -155,8 +135,6 @@ class VoddsController : CoroutineScope, IGettingSnapshotListener {
                 }
             }
         }
-//        if (change) voddsInterractor.changePinList(pinOddList)
-//        println("${pinOddList.size}")
     }
 
 
@@ -167,8 +145,6 @@ class VoddsController : CoroutineScope, IGettingSnapshotListener {
                 pinOddList.remove(stringHash(record).toString())
             }
         }
-//        voddsInterractor.changePinList(pinOddList)
-//        println("${pinOddList.size}")
     }
 
     private fun sendingMessageToConsole(message: String)  {

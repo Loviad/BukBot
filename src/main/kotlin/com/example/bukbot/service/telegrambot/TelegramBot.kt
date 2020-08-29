@@ -45,7 +45,7 @@ class TelegramBot(
             approvedUsersList[it.chatId] = it
         }
         currentState.setTelegramBot(this)
-        sendStartMessage()
+//        sendStartMessage()
     }
 
     fun sendStateMessage(str: String) {
@@ -89,7 +89,6 @@ class TelegramBot(
                     when (val command = message.text.substring(it.offset, it.offset + it.length)) {
                         "/approved" -> sendTxtMessage(message, "Привет")
                         "/login" -> approvedLogin(message, IntRange(it.offset, it.offset + it.length))
-                        "/credit" -> getCredit(message)
                         "/balance" -> getBalance(message)
                         "/status" -> getStatusSystem(message)
                         "/state" -> getCurrentState()
@@ -133,19 +132,6 @@ class TelegramBot(
             authInterractor.sendLogin(LoginInfo(user.chatId, user.password, message.text.removeRange(range)))
         } catch (e: Exception) {
             //TODO : зафиксировать попытку левого входа
-        }
-    }
-
-    fun getCredit(message: Message) {
-        val sendMessage = SendMessage()
-        sendMessage.enableMarkdown(true)
-        sendMessage.chatId = message.chatId.toString()
-//        sendMessage.replyToMessageId = message.messageId
-        sendMessage.text = telegramInterractor.getCredit().toString()
-        try {
-            execute(sendMessage)
-        } catch (e: Exception) {
-
         }
     }
 

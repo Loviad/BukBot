@@ -71,7 +71,7 @@ class CurrentState : CoroutineScope {
         api.getBalance(state).join()
         api.getOpenBets(openedBets).join()
         state.OB = openedBets.get()?.totalResults ?: 0
-        sendStateToTelegram()
+//        sendStateToTelegram()
         while (true) {
             try {
                 state.OB = openedBets.get()?.totalResults ?: 0
@@ -136,5 +136,9 @@ class CurrentState : CoroutineScope {
 
     private suspend inline fun <reified TEvent : VoddsEvents> sendEvents(noinline sender: suspend (TEvent) -> Unit) {
         eventListener.filterIsInstance<TEvent>().forEach { sender(it) }
+    }
+
+    fun getStatistic(startDate: String, endDate: String) {
+        val k = 1
     }
 }
