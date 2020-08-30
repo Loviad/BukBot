@@ -2,6 +2,7 @@ package com.example.bukbot.utils
 
 import com.example.bukbot.BukBotApplication
 import com.example.bukbot.BukBotApplication.Companion.backgroundTaskDispatcher
+import com.example.bukbot.data.SSEModel.AnalizeSSEModel
 import com.example.bukbot.data.SSEModel.CurrentStateSSEModel
 import com.example.bukbot.data.api.Response.openedbets.BetInfo
 import com.example.bukbot.data.api.Response.openedbets.OpenedBet
@@ -88,9 +89,9 @@ class CurrentState : CoroutineScope {
         while (true) {
             try {
                 state.OB = openedBets.get()?.totalResults ?: 0
-//                hal?.let {
-//                    state.memory = (((it.memory.available / 1024.0) / 1024.0) / 1024.0).round(2)
-//                }
+                hal?.let {
+                    state.memory = (((it.memory.available / 1024.0) / 1024.0) / 1024.0).round(2)
+                }
                 sendEvents<CurStateEvent> {
                     it.updateState(state)
                 }
@@ -171,6 +172,7 @@ class CurrentState : CoroutineScope {
         val bets = api.getSetledBets(startDate.millis, endDate.millis)
         if (bets == null) {
             pageInterractor.sendMessageConsole("Запрос истории вернул нулевой результат", pageInterractor.ERROR)
+            pageInterractor.sendProgressText("Запрос истории вернул нулевой результат")
             return@launch
         }
         bets.sortBy {
@@ -181,19 +183,29 @@ class CurrentState : CoroutineScope {
         // state 7 = DRAW
 
         /** WIN LOSS DRAW */
+        pageInterractor.sendProgressText("Разбираем результаты ставок")
+        pageInterractor.sendProgressValue(0)
+        pageInterractor.sendProgressMax(100)
         val winArray = bets.filter {
             it.betStatus == 4
         }
+        pageInterractor.sendProgressValue(33)
         val lossArray = bets.filter {
             it.betStatus == 5
         }
+        pageInterractor.sendProgressValue(66)
         val drawArray = bets.filter {
             it.betStatus == 7
         }
+        pageInterractor.sendProgressValue(100)
 
         /** SPORTBOOK WIN LOSS DRAW */
+        pageInterractor.sendProgressText("Разбираем результаты по конторам")
+        pageInterractor.sendProgressValue(0)
         val sportBookListWLD: ArrayList<WLDmodel> = arrayListOf()
         val arraySportBook: ArrayList<String> = arrayListOf()
+        var col = settings.sportbookList.count()
+        pageInterractor.sendProgressMax(col)
         for (i in settings.sportbookList){
             arraySportBook.add(i)
             sportBookListWLD.add(
@@ -209,15 +221,22 @@ class CurrentState : CoroutineScope {
                             }.count()
                     )
             )
+            pageInterractor.sendProgressValue(settings.sportbookList.count() - col)
+            col--
         }
 
         /** ODDS */
+        pageInterractor.sendProgressText("Разбираем результаты по коэффициентам")
+        pageInterractor.sendProgressValue(0)
         val min = (floor(bets.first().serverOdd!! * 10) / 10.0) + 1
         val max = (floor(bets.last().serverOdd!! * 10) / 10.0) + 1
 
         val arrayOddsList: ArrayList<String> = arrayListOf()
         val arrayOddsWLD: ArrayList<WLDmodel> = arrayListOf()
         var stepOdd = min
+        col = ((max - min) / 0.1).toInt()
+        val temp = col
+        pageInterractor.sendProgressMax(col)
         while (stepOdd <= max){
             arrayOddsList.add(stepOdd.round(1).toString())
             arrayOddsWLD.add(
@@ -234,6 +253,8 @@ class CurrentState : CoroutineScope {
                     )
             )
             stepOdd += 0.1
+            pageInterractor.sendProgressValue(temp - col)
+            col--
         }
 
         pageInterractor.sendAnalizeResult(

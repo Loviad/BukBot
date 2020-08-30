@@ -5,7 +5,6 @@ import com.example.bukbot.data.SSEModel.*
 import com.example.bukbot.data.api.Response.openedbets.BetInfo
 import com.example.bukbot.data.database.Dao.SettingsDao
 import com.example.bukbot.data.database.Dao.ValueBetsItem
-import com.example.bukbot.data.models.CurrentBalance
 import com.example.bukbot.data.oddsList.PinOdd
 import com.example.bukbot.data.telegram.models.IMessageData
 import com.example.bukbot.data.telegram.models.loginInfo.LoginInfo
@@ -13,19 +12,21 @@ import com.example.bukbot.domain.interactors.auth.AuthInterractor
 import com.example.bukbot.domain.interactors.page.PageInterractor
 import com.example.bukbot.domain.interactors.vodds.VoddsInterractor
 import com.example.bukbot.service.events.*
-import com.example.bukbot.utils.*
+import com.example.bukbot.utils.CurrentState
+import com.example.bukbot.utils.DatePatterns
+import com.example.bukbot.utils.Settings
+import com.example.bukbot.utils.getAccessToken
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import org.joda.time.DateTime
-import org.joda.time.DateTimeZone
-import org.springframework.stereotype.Controller
-import org.springframework.web.servlet.mvc.method.annotation.SseEmitter
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.security.core.Authentication
+import org.springframework.stereotype.Controller
 import org.springframework.ui.Model
 import org.springframework.web.bind.annotation.*
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter
 import java.io.IOException
 import java.util.*
 import java.util.concurrent.Executors
@@ -232,7 +233,7 @@ class PageController : CoroutineScope,
                     val k = SseEmitter.event()
                             .name("currentToken")
                             .reconnectTime(20_000L)
-                            .data( TokenMessage(getAccessToken()),
+                            .data(TokenMessage(getAccessToken()),
                                     MediaType.APPLICATION_JSON)
                     emitter.value.send(k)
 
@@ -540,6 +541,60 @@ class PageController : CoroutineScope,
                             .name("analizeResult")
                             .reconnectTime(20_000L)
                             .data(analizeSSEModel, MediaType.APPLICATION_JSON)
+
+                    emitter.value.send(k)
+
+                } catch (ioe: Exception) {
+                    emittersData.remove(emitter.key)
+                }
+            }
+        }
+    }
+
+    fun sendProgresValue(progresVal: ProgressAnalizeValue) {
+        emittersData.forEach { emitter ->
+            nonBlockingService.execute {
+                try {
+                    val k = SseEmitter.event()
+                            .name("progressNow")
+                            .reconnectTime(20_000L)
+                            .data(progresVal, MediaType.APPLICATION_JSON)
+
+                    emitter.value.send(k)
+
+                } catch (ioe: Exception) {
+                    emittersData.remove(emitter.key)
+                }
+            }
+        }
+    }
+
+    fun sendProgresMax(progresVal: ProgressAnalizeValue) {
+        emittersData.forEach { emitter ->
+            nonBlockingService.execute {
+                try {
+                    val k = SseEmitter.event()
+                            .name("progressMax")
+                            .reconnectTime(20_000L)
+                            .data(progresVal, MediaType.APPLICATION_JSON)
+
+                    emitter.value.send(k)
+
+                } catch (ioe: Exception) {
+                    emittersData.remove(emitter.key)
+                }
+            }
+        }
+    }
+
+    fun sendTextProgress(progresText: ProgressTextValue) {
+        emittersData.forEach { emitter ->
+            nonBlockingService.execute {
+                try {
+                    val k = SseEmitter.event()
+                            .name("progressText")
+                            .reconnectTime(20_000L)
+                            .data(progresText, MediaType.APPLICATION_JSON)
 
                     emitter.value.send(k)
 

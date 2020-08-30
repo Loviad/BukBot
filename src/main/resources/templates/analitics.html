@@ -34,6 +34,13 @@
                                         <b-spinner v-if="this.analisInProgress" small type="grow"></b-spinner>
                                         <span v-if="!this.analisInProgress">Анализ</span>
                                     </button>
+                                    <div v-if="this.analisInProgress" class="progress mt-2">
+                                        <div class="progress-bar bg-primary progress-bar-striped" role="progressbar"
+                                             v-bind:aria-valuenow="[progresValuenow]" aria-valuemin="0" v-bind:aria-valuemax="[progresValuemax]" v-bind:style="{width: progresValuenow + '%'}">
+                                            <span class="sr-only">40% Complete (success)</span>
+                                        </div>
+                                    </div>
+                                    <span class="mt-2" v-if="this.analisInProgress">{{ analizeText }}</span>
                                 </div>
                                 <!-- /.card-body -->
                             </div>
@@ -121,6 +128,9 @@
         var apiApp = new Vue({
             el: '#indexPage',
             data: {
+                analizeText: '',
+                progresValuenow: 40,
+                progresValuemax: 100,
                 analisInProgress: false,
                 lablBook: [],
                 dataSportBook: [
@@ -287,12 +297,30 @@
                     oddsChartPercent.update();
 
                     }, false);
+
+
+                    base.es.addEventListener('progressNow', event => {
+                        let data = JSON.parse(event.data);
+                        this.progresValuenow = data.value;
+                    }, false);
+
+                    base.es.addEventListener('progressMax', event => {
+                        let data = JSON.parse(event.data);
+                        this.progresValuemax = data.value;
+                    }, false);
+
+                    base.es.addEventListener('progressText', event => {
+                        let data = JSON.parse(event.data);
+                        this.analizeText = data.value;
+                    }, false);
+
+
                 },
                 startAnalis() {
                     this.analisInProgress = true;
+                    this.progresValuenow = 0;
+                    this.analizeText = 'Запрос ставок от Водсов';
                     axios.post('/initstatistic', 'range='+$('#reservation').val()+'&_csrf='+base.hash, axiosConfig);
-                },
-                test() {
                 }
             },
             computed: {

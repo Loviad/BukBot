@@ -70,7 +70,7 @@ class VoddsController : CoroutineScope, IGettingSnapshotListener {
 
     fun start() = launch {
         val factory = SportsFeedFactory()
-        val client = factory.createFromConfigFile("D:\\win\\libSportConfig.json")
+        val client = factory.createFromConfigFile("/home/admin/libSportConfig.json")
         val noFilterIBetMatchFeedView = client.view(SoccerMatch::class.java)
         val myHandler = VoddsEventHandler(this@VoddsController)
         noFilterIBetMatchFeedView.register(myHandler)

@@ -347,8 +347,10 @@ class ApiClient : CoroutineScope {
                 betsList.addAll(map.betInfos!!)
                 val maxPages = kotlin.math.floor(map.totalResults!! / 50.0).toInt()
                 if (maxPages > 0 ) {
+                    pageInterractor.sendProgressMax(maxPages)
                     var i = 1
                     while(i <= maxPages) {
+                        pageInterractor.sendProgressText("запрашиваем страницу $i")
                         val zUn2 = UUID.randomUUID().toString()
                         val body2 = FormBody.Builder()
                                 .add("username", "unity_group170")
@@ -370,11 +372,11 @@ class ApiClient : CoroutineScope {
                             if (map.actionStatus == 0) {
                                 betsList.addAll(map.betInfos!!)
                                 i++
-                            } else {
-                                val z = 1
+                                pageInterractor.sendProgressValue(i)
                             }
                         } catch (e:Exception){
                             pageInterractor.sendMessageConsole("Ошибка при запросе истории ставок, страница $i:" + e.message, pageInterractor.ERROR)
+                            pageInterractor.sendProgressText("Ошибка при запросе истории ставок, страница $i")
                         }
                     }
                 }
@@ -382,6 +384,7 @@ class ApiClient : CoroutineScope {
             }
         } catch (e:Exception) {
             pageInterractor.sendMessageConsole("Ошибка при парсинге истории ставок:" + e.message, pageInterractor.ERROR)
+            pageInterractor.sendProgressText("Ошибка при парсинге истории ставок")
         }
         return null
     }

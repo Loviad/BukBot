@@ -4,6 +4,8 @@ import com.example.bukbot.BukBotApplication
 import com.example.bukbot.controller.page.PageController
 import com.example.bukbot.data.SSEModel.AnalizeSSEModel
 import com.example.bukbot.data.SSEModel.ConsoleMessage
+import com.example.bukbot.data.SSEModel.ProgressAnalizeValue
+import com.example.bukbot.data.SSEModel.ProgressTextValue
 import com.example.bukbot.data.models.WLDmodel
 import com.example.bukbot.service.events.IBetPlacingListener
 import com.example.bukbot.utils.DatePatterns
@@ -79,6 +81,25 @@ class PageInterractor : CoroutineScope, IBetPlacingListener {
         }
         messages.add(mes)
     }
+
+    fun sendProgressValue(value: Int) {
+        controller?.sendProgresValue(
+                ProgressAnalizeValue(value)
+        )
+    }
+
+    fun sendProgressMax(value: Int) {
+        controller?.sendProgresValue(
+                ProgressAnalizeValue(value)
+        )
+    }
+
+    fun sendProgressText(value: String) {
+        controller?.sendTextProgress(
+                ProgressTextValue(value)
+        )
+    }
+
 
     fun sendAnalizeResult(bookList: Array<String>, bookWLD: Array<WLDmodel>, oddsList: Array<String>, oddsWLD: Array<WLDmodel>) {
         controller?.sendAnalizeResult(
