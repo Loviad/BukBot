@@ -1,10 +1,12 @@
 package com.example.bukbot.utils
 
 import com.example.bukbot.BukBotApplication
+import com.example.bukbot.BukBotApplication.Companion.backgroundTaskDispatcher
 import com.example.bukbot.data.SSEModel.CurrentStateSSEModel
 import com.example.bukbot.data.api.Response.openedbets.BetInfo
 import com.example.bukbot.data.api.Response.openedbets.OpenedBet
 import com.example.bukbot.data.database.Dao.OpenBets
+import com.example.bukbot.data.models.WLDmodel
 import com.example.bukbot.data.repositories.OpenedBetsRepository
 import com.example.bukbot.domain.interactors.page.PageInterractor
 import com.example.bukbot.service.events.CurStateEvent
@@ -16,25 +18,32 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import org.joda.time.DateTime
+import org.joda.time.DateTimeZone
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Component
 import oshi.SystemInfo
 import oshi.hardware.HardwareAbstractionLayer
 import javax.annotation.PostConstruct
+import kotlin.math.floor
 
 
 @Component
 class CurrentState : CoroutineScope {
     @Autowired
     private lateinit var api: ApiClient
+
     @Autowired
     private lateinit var settings: Settings
+
     @Autowired
     private lateinit var openedBetsRepository: OpenedBetsRepository
+
     @Autowired
     private lateinit var pageInterractor: PageInterractor
 
     override val coroutineContext = BukBotApplication.orderedStateTaskDispatcher
+    val orderedContext = backgroundTaskDispatcher
     private val eventListener = ArrayList<VoddsEvents>()
     private val openedBets: SimpleObjectProperty<OpenedBet?> = SimpleObjectProperty(null)
     private var telegBot: TelegramBot? = null
@@ -47,12 +56,16 @@ class CurrentState : CoroutineScope {
 
     val canBetting: Boolean
         get() {
-            return  if (settings.balanceBetting) {
-                        state.balance
-                    } else {0.0} +
+            return if (settings.balanceBetting) {
+                state.balance
+            } else {
+                0.0
+            } +
                     if (settings.creditBetting) {
                         state.credit
-                    } else {0.0} - settings.saveBalance - settings.getGold() >= 0.0
+                    } else {
+                        0.0
+                    } - settings.saveBalance - settings.getGold() >= 0.0
         }
 
     fun setTelegramBot(bot: TelegramBot) {
@@ -90,11 +103,11 @@ class CurrentState : CoroutineScope {
                 }
                 api.getBalance(state).join()
                 api.getOpenBets(openedBets).join()
-            } catch (e:Exception) {
+            } catch (e: Exception) {
                 pageInterractor.sendMessageConsole("EXEPT in STATE_CHECKER", pageInterractor.ERROR)
             }
             i++
-            delay( 5 * 60 * 1000)
+            delay(5 * 60 * 1000)
             pageInterractor.sendMessageConsole("TIMEOUT 5 MIN IS DELAY i=$i teleg is null= ${telegBot == null}", pageInterractor.IMPORTANT)
         }
     }
@@ -116,21 +129,20 @@ class CurrentState : CoroutineScope {
 
     fun sendStateToTelegram() {
         telegBot?.sendStateMessage(
-                "Баланс: ${state.balance}\n"+
-                        "Кредит: ${state.credit}\n"+
-                        "Profit/Loss: ${state.pl}\n"+
-                        "OB: ${state.OB}\n"+
+                "Баланс: ${state.balance}\n" +
+                        "Кредит: ${state.credit}\n" +
+                        "Profit/Loss: ${state.pl}\n" +
+                        "OB: ${state.OB}\n" +
                         "FreeMemory: ${state.memory}"
         )
     }
 
 
-
-    fun addEventListener(listener: VoddsEvents){
+    fun addEventListener(listener: VoddsEvents) {
         eventListener.add(listener)
     }
 
-    fun removeEventListener(listener: VoddsEvents){
+    fun removeEventListener(listener: VoddsEvents) {
         eventListener.remove(listener)
     }
 
@@ -138,7 +150,97 @@ class CurrentState : CoroutineScope {
         eventListener.filterIsInstance<TEvent>().forEach { sender(it) }
     }
 
-    fun getStatistic(startDate: String, endDate: String) {
-        val k = 1
+    fun getStatistic(range: String) = launch(orderedContext) {
+        val startAndEnd = range.split(" - ")
+        val start = startAndEnd[0].split(".")  // mm.dd.yyyy
+        val end = startAndEnd[1].split(".")  // mm.dd.yyyy
+        val startDate = DateTime(
+                start[2].toInt(),
+                start[0].toInt(),
+                start[1].toInt(),
+                0, 0,
+                DateTimeZone.UTC//now().zone
+        )
+        val endDate = DateTime(
+                end[2].toInt(),
+                end[0].toInt(),
+                end[1].toInt(),
+                0, 0,
+                DateTimeZone.UTC//now().zone
+        )
+        val bets = api.getSetledBets(startDate.millis, endDate.millis)
+        if (bets == null) {
+            pageInterractor.sendMessageConsole("Запрос истории вернул нулевой результат", pageInterractor.ERROR)
+            return@launch
+        }
+        bets.sortBy {
+            it.serverOdd
+        }
+        // state 4 = WIN
+        // state 5 = LOSS
+        // state 7 = DRAW
+
+        /** WIN LOSS DRAW */
+        val winArray = bets.filter {
+            it.betStatus == 4
+        }
+        val lossArray = bets.filter {
+            it.betStatus == 5
+        }
+        val drawArray = bets.filter {
+            it.betStatus == 7
+        }
+
+        /** SPORTBOOK WIN LOSS DRAW */
+        val sportBookListWLD: ArrayList<WLDmodel> = arrayListOf()
+        val arraySportBook: ArrayList<String> = arrayListOf()
+        for (i in settings.sportbookList){
+            arraySportBook.add(i)
+            sportBookListWLD.add(
+                    WLDmodel(
+                            winArray.filter {
+                                it.sportbook == i.toLowerCase()
+                            }.count(),
+                            lossArray.filter {
+                                it.sportbook == i.toLowerCase()
+                            }.count(),
+                            drawArray.filter {
+                                it.sportbook == i.toLowerCase()
+                            }.count()
+                    )
+            )
+        }
+
+        /** ODDS */
+        val min = (floor(bets.first().serverOdd!! * 10) / 10.0) + 1
+        val max = (floor(bets.last().serverOdd!! * 10) / 10.0) + 1
+
+        val arrayOddsList: ArrayList<String> = arrayListOf()
+        val arrayOddsWLD: ArrayList<WLDmodel> = arrayListOf()
+        var stepOdd = min
+        while (stepOdd <= max){
+            arrayOddsList.add(stepOdd.round(1).toString())
+            arrayOddsWLD.add(
+                    WLDmodel(
+                            winArray.filter {
+                                it.serverOdd!! >= stepOdd - 1.0 && it.serverOdd!! < stepOdd - 0.9
+                            }.count(),
+                            lossArray.filter {
+                                it.serverOdd!! >= stepOdd - 1.0 && it.serverOdd!! < stepOdd - 0.9
+                            }.count(),
+                            drawArray.filter {
+                                it.serverOdd!! >= stepOdd - 1.0 && it.serverOdd!! < stepOdd - 0.9
+                            }.count()
+                    )
+            )
+            stepOdd += 0.1
+        }
+
+        pageInterractor.sendAnalizeResult(
+                arraySportBook.toTypedArray(),
+                sportBookListWLD.toTypedArray(),
+                arrayOddsList.toTypedArray(),
+                arrayOddsWLD.toTypedArray()
+        )
     }
 }

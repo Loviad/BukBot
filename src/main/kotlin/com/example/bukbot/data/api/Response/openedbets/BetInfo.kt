@@ -26,7 +26,7 @@ class BetInfo(
         val betTime: String?,
         val sportbook: String?,
         val eventStart: String?,
-        val betStatus: String?,
+        val betStatus: Int?,
         val oddType: String?,
         val targetType: String?
 )

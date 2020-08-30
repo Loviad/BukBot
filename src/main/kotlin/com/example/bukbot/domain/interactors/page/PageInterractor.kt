@@ -2,7 +2,9 @@ package com.example.bukbot.domain.interactors.page
 
 import com.example.bukbot.BukBotApplication
 import com.example.bukbot.controller.page.PageController
+import com.example.bukbot.data.SSEModel.AnalizeSSEModel
 import com.example.bukbot.data.SSEModel.ConsoleMessage
+import com.example.bukbot.data.models.WLDmodel
 import com.example.bukbot.service.events.IBetPlacingListener
 import com.example.bukbot.utils.DatePatterns
 import com.example.bukbot.utils.Settings
@@ -76,6 +78,17 @@ class PageInterractor : CoroutineScope, IBetPlacingListener {
             messages.removeAt(0)
         }
         messages.add(mes)
+    }
+
+    fun sendAnalizeResult(bookList: Array<String>, bookWLD: Array<WLDmodel>, oddsList: Array<String>, oddsWLD: Array<WLDmodel>) {
+        controller?.sendAnalizeResult(
+                AnalizeSSEModel(
+                        bookList,
+                        bookWLD,
+                        oddsList,
+                        oddsWLD
+                )
+        )
     }
 
     enum class TypeMessage{

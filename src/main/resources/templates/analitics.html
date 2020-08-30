@@ -26,11 +26,80 @@
                                                 <i class="far fa-calendar-alt"></i>
                                               </span>
                                             </div>
-                                            <input type="text" class="form-control float-right" id="reservation">
+                                            <input type="text" name="range" class="form-control float-right" id="reservation">
                                         </div>
                                         <!-- /.input group -->
                                     </div>
+                                    <button type="button" class="btn btn-block btn-outline-success btn-lg" v-on:click="startAnalis()">
+                                        <b-spinner v-if="this.analisInProgress" small type="grow"></b-spinner>
+                                        <span v-if="!this.analisInProgress">Анализ</span>
+                                    </button>
+                                </div>
+                                <!-- /.card-body -->
+                            </div>
+                            <!-- /.card -->
+                        </div>
+                    </div>
+                </div>
+            </section>
 
+            <section class="content">
+                <div class="container-fluid">
+                    <div class="row">
+                        <div class="col-12 mt-5">
+                            <!-- Default box -->
+                            <div class="card">
+                                <div class="card-header">
+                                    <h3 class="card-title">По конторам</h3>
+                                </div>
+                                <div class="card-body">
+                                    <div class="chart">
+                                        <canvas id="bookChart" v-bind:style="{height: booksChartHeight + 'px', width: '100%'}"></canvas>
+                                    </div>
+                                </div>
+                                <!-- /.card-body -->
+                            </div>
+                            <!-- /.card -->
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="content">
+                <div class="container-fluid">
+                    <div class="row">
+                        <div class="col-12 mt-5">
+                            <!-- Default box -->
+                            <div class="card">
+                                <div class="card-header">
+                                    <h3 class="card-title">По коэффициентам</h3>
+                                </div>
+                                <div class="card-body">
+                                    <div class="chart">
+                                        <canvas id="oddsChart" v-bind:style="{height: oddsChartHeight + 'px', width: '100%'}"></canvas>
+                                    </div>
+                                </div>
+                                <!-- /.card-body -->
+                            </div>
+                            <!-- /.card -->
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="content">
+                <div class="container-fluid">
+                    <div class="row">
+                        <div class="col-12 mt-5">
+                            <!-- Default box -->
+                            <div class="card">
+                                <div class="card-header">
+                                    <h3 class="card-title">По коэффициентам в %</h3>
+                                </div>
+                                <div class="card-body">
+                                    <div class="chart">
+                                        <canvas id="oddsChartPercent" v-bind:style="{height: oddsChartHeight + 'px', width: '100%'}"></canvas>
+                                    </div>
                                 </div>
                                 <!-- /.card-body -->
                             </div>
@@ -45,33 +114,260 @@
 
     <div th:include="~{lte_template :: footer}"></div>
     <script th:src="@{lte/plugins/chart.js/Chart.min.js}"></script>
+    <script th:src="@{lte/plugins/moment/moment.min.js}"></script>
+    <script th:src="@{lte/plugins/inputmask/jquery.inputmask.min.js}"></script>
     <script th:src="@{lte/plugins/daterangepicker/daterangepicker.js}"></script>
     <script th:inline="javascript">
-    var apiApp = new Vue({
-        el: '#indexPage',
-        data: {
+        var apiApp = new Vue({
+            el: '#indexPage',
+            data: {
+                analisInProgress: false,
+                lablBook: [],
+                dataSportBook: [
+                    {
+                      label               : '1.WIN',
+                      backgroundColor     : 'rgba(0, 153, 51, 1.0)',
+                      borderColor         : 'rgba(0, 153, 51, 1.0)',
+                      pointRadius         : false,
+                      pointColor          : 'rgba(210, 214, 222, 1)',
+                      pointStrokeColor    : '#c1c7d1',
+                      pointHighlightFill  : '#fff',
+                      pointHighlightStroke: 'rgba(220,220,220,1)',
+                      data                : [65, 59, 80, 81, 56, 55, 40]
+                    },
+                    {
+                      label               : '2.LOSS',
+                      backgroundColor     : 'rgba(230, 46, 0, 1.0)',
+                      borderColor         : 'rgba(230, 46, 0, 1.0)',
+                      pointRadius          : false,
+                      pointColor          : '#3b8bba',
+                      pointStrokeColor    : 'rgba(60,141,188,1)',
+                      pointHighlightFill  : '#fff',
+                      pointHighlightStroke: 'rgba(60,141,188,1)',
+                      data                : [28, 48, 40, 19, 86, 27, 90]
+                    },
+                    {
+                      label               : '3.DRAW',
+                      backgroundColor     : 'rgba(166, 166, 166, 1.0)',
+                      borderColor         : 'rgba(166, 166, 166, 1.0)',
+                      pointRadius          : false,
+                      pointColor          : '#3b8bba',
+                      pointStrokeColor    : 'rgba(60,141,188,1)',
+                      pointHighlightFill  : '#fff',
+                      pointHighlightStroke: 'rgba(60,141,188,1)',
+                      data                : [28, 48, 40, 19, 86, 27, 90]
+                    }
+                  ],
+                  lablKef: [],
+                  dataOdds: [
+                    {
+                      label               : '1.WIN',
+                      backgroundColor     : 'rgba(0, 153, 51, 1.0)',
+                      borderColor         : 'rgba(0, 153, 51, 1.0)',
+                      pointRadius         : false,
+                      pointColor          : 'rgba(210, 214, 222, 1)',
+                      pointStrokeColor    : '#c1c7d1',
+                      pointHighlightFill  : '#fff',
+                      pointHighlightStroke: 'rgba(220,220,220,1)',
+                      data                : [65, 59, 80, 81, 56, 55, 40]
+                    },
+                    {
+                      label               : '2.LOSS',
+                      backgroundColor     : 'rgba(230, 46, 0, 1.0)',
+                      borderColor         : 'rgba(230, 46, 0, 1.0)',
+                      pointRadius          : false,
+                      pointColor          : '#3b8bba',
+                      pointStrokeColor    : 'rgba(60,141,188,1)',
+                      pointHighlightFill  : '#fff',
+                      pointHighlightStroke: 'rgba(60,141,188,1)',
+                      data                : [28, 48, 40, 19, 86, 27, 90]
+                    },
+                    {
+                      label               : '3.DRAW',
+                      backgroundColor     : 'rgba(166, 166, 166, 1.0)',
+                      borderColor         : 'rgba(166, 166, 166, 1.0)',
+                      pointRadius          : false,
+                      pointColor          : '#3b8bba',
+                      pointStrokeColor    : 'rgba(60,141,188,1)',
+                      pointHighlightFill  : '#fff',
+                      pointHighlightStroke: 'rgba(60,141,188,1)',
+                      data                : [28, 48, 40, 19, 86, 27, 90]
+                    }
+                  ],
+                  dataOddsPercent: [
+                    {
+                      label               : '1.WIN',
+                      backgroundColor     : 'rgba(0, 153, 51, 1.0)',
+                      borderColor         : 'rgba(0, 153, 51, 1.0)',
+                      pointRadius         : false,
+                      pointColor          : 'rgba(210, 214, 222, 1)',
+                      pointStrokeColor    : '#c1c7d1',
+                      pointHighlightFill  : '#fff',
+                      pointHighlightStroke: 'rgba(220,220,220,1)',
+                      data                : [65, 59, 80, 81, 56, 55, 40]
+                    },
+                    {
+                      label               : '2.LOSS',
+                      backgroundColor     : 'rgba(230, 46, 0, 1.0)',
+                      borderColor         : 'rgba(230, 46, 0, 1.0)',
+                      pointRadius          : false,
+                      pointColor          : '#3b8bba',
+                      pointStrokeColor    : 'rgba(60,141,188,1)',
+                      pointHighlightFill  : '#fff',
+                      pointHighlightStroke: 'rgba(60,141,188,1)',
+                      data                : [28, 48, 40, 19, 86, 27, 90]
+                    },
+                    {
+                      label               : '3.DRAW',
+                      backgroundColor     : 'rgba(166, 166, 166, 1.0)',
+                      borderColor         : 'rgba(166, 166, 166, 1.0)',
+                      pointRadius          : false,
+                      pointColor          : '#3b8bba',
+                      pointStrokeColor    : 'rgba(60,141,188,1)',
+                      pointHighlightFill  : '#fff',
+                      pointHighlightStroke: 'rgba(60,141,188,1)',
+                      data                : [28, 48, 40, 19, 86, 27, 90]
+                    }
+                  ],
+            },
+            created() {
+                this.setupStream();
+            },
+            methods: {
+                setupStream() {
+                    base.es.addEventListener('analizeResult', event => {
+                    let sseData = JSON.parse(event.data);
+                    console.log(sseData);
+                    this.analisInProgress = false;
+                    this.lablBook = sseData.bookList;
+                    this.lablKef = sseData.oddsList;
 
-        },
-        created() {
-            this.setupStream();
-        },
-        methods: {
-            setupStream() {
+                    bookChart.data.labels.splice(0);
+                    bookChart.data.labels = this.lablBook;
+                    this.dataSportBook[0].data.splice(0);
+                    this.dataSportBook[1].data.splice(0);
+                    this.dataSportBook[2].data.splice(0);
+
+                    sseData.bookWLD.forEach((dataWLD) => {
+                            this.dataSportBook[0].data.push(dataWLD.win);
+                            this.dataSportBook[1].data.push(dataWLD.loss);
+                            this.dataSportBook[2].data.push(dataWLD.draw);
+                        }
+                    );
+
+                    bookChart.data.datasets = this.dataSportBook;
+                    bookChart.update();
+
+                    oddsChart.data.labels.splice(0);
+                    oddsChart.data.labels = this.lablKef;
+                    this.dataOdds[0].data.splice(0);
+                    this.dataOdds[1].data.splice(0);
+                    this.dataOdds[2].data.splice(0);
+
+                    this.dataOddsPercent[0].data.splice(0);
+                    this.dataOddsPercent[1].data.splice(0);
+                    this.dataOddsPercent[2].data.splice(0);
+                    sseData.oddsWLD.forEach((dataWLD) => {
+                            this.dataOdds[0].data.push(dataWLD.win);
+                            this.dataOdds[1].data.push(dataWLD.loss);
+                            this.dataOdds[2].data.push(dataWLD.draw);
+
+                            this.dataOddsPercent[0].data.push((100/(dataWLD.win + dataWLD.loss + dataWLD.draw)) * dataWLD.win);
+                            this.dataOddsPercent[1].data.push((100/(dataWLD.win + dataWLD.loss + dataWLD.draw)) * dataWLD.loss);
+                            this.dataOddsPercent[2].data.push((100/(dataWLD.win + dataWLD.loss + dataWLD.draw)) * dataWLD.draw);
+                        }
+                    );
+
+                    oddsChart.data.datasets = this.dataOdds;
+                    oddsChart.update();
+
+                    oddsChartPercent.data.labels.splice(0);
+                    oddsChartPercent.data.labels = this.lablKef;
+                    oddsChartPercent.data.datasets = this.dataOddsPercent;
+                    oddsChartPercent.update();
+
+                    }, false);
+                },
+                startAnalis() {
+                    this.analisInProgress = true;
+                    axios.post('/initstatistic', 'range='+$('#reservation').val()+'&_csrf='+base.hash, axiosConfig);
+                },
+                test() {
+                }
+            },
+            computed: {
+                booksChartHeight: function(){
+                    return (this.lablBook.length * 80);
+                },
+                oddsChartHeight: function(){
+                    return (this.lablKef.length * 80);
+                }
 
             }
-        },
-         computed: {
-        }
-    });
-
+        });
     </script>
     <script th:inline="javascript">
+      var bookChart
+      var oddsChart
+      var oddsChartPercent
       $(function () {
-        $('#reservation').daterangepicker()
+        $('#reservation').daterangepicker({
+            format: 'L',
+            locale: {
+                format: 'MM.DD.YYYY'
+              }
+        });
+
+        var bookChartData = {
+                  labels  : [],
+                  datasets: []
+                };
+        var oddsData = {
+                  labels  : [],
+                  datasets: []
+                };
+        var oddsDataPercent = {
+                  labels  : [],
+                  datasets: []
+                };
+        //-------------
+        //- BAR CHART -
+        //-------------
+        var bookChartCanvas = $('#bookChart').get(0).getContext('2d');
+        var oddsChartCanvas = $('#oddsChart').get(0).getContext('2d');
+        var oddsChartPercentCanvas = $('#oddsChartPercent').get(0).getContext('2d');
+
+        var bookChartData = $.extend(true, {}, bookChartData);
+        var oddsData = $.extend(true, {}, oddsData);
+        var oddsDataPercent = $.extend(true, {}, oddsDataPercent);
+
+        var areaChartOptions = {
+        responsive              : true,
+        maintainAspectRatio     : false,
+        datasetFill             : false
+        };
+
+        bookChart = new Chart(bookChartCanvas, {
+            type: 'horizontalBar',
+            data: bookChartData,
+            options: areaChartOptions
+        });
+
+        oddsChart = new Chart(oddsChartCanvas, {
+            type: 'horizontalBar',
+            data: oddsData,
+            options: areaChartOptions
+        });
+
+        oddsChartPercent = new Chart(oddsChartPercentCanvas, {
+            type: 'horizontalBar',
+            data: oddsDataPercent,
+            options: areaChartOptions
+        });
+
+
       });
     </script>
-
-
     </body>
     </html>
 </div>

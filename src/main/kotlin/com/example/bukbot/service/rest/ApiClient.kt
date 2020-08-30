@@ -9,6 +9,7 @@ import com.example.bukbot.data.SSEModel.CurrentStateSSEModel
 import com.example.bukbot.data.api.Balance
 import com.example.bukbot.data.api.Response.BetPlaceResponse
 import com.example.bukbot.data.api.Response.BetTicketResponse
+import com.example.bukbot.data.api.Response.openedbets.BetInfo
 import com.example.bukbot.data.api.Response.openedbets.OpenedBet
 import com.example.bukbot.data.oddsList.PinOdd
 import com.example.bukbot.data.repositories.PlacedBetRepository
@@ -28,9 +29,11 @@ import org.joda.time.DateTime
 import org.joda.time.DateTimeZone
 import org.joda.time.format.DateTimeFormat
 import org.springframework.beans.factory.annotation.Autowired
+import java.lang.Math.floor
 import java.util.*
 import java.util.concurrent.Executors
 import javax.annotation.PostConstruct
+import javax.xml.stream.events.EndDocument
 import kotlin.collections.ArrayList
 import kotlin.collections.HashMap
 import kotlin.collections.HashSet
@@ -318,5 +321,68 @@ class ApiClient : CoroutineScope {
         } catch (e: Exception) {
             pageInterractor.sendMessageConsole("Ошибка при парсинге установки ставки ${company}:$threadNumber: " + e.message, pageInterractor.ERROR)
         }
+    }
+
+    fun getSetledBets(start: Long, end: Long): ArrayList<BetInfo>? {
+        val zUn = UUID.randomUUID().toString()
+        val body = FormBody.Builder()
+                .add("username", "unity_group170")
+                .add("accessToken", getAccessToken()!!)
+                .add("reqId", zUn)
+                .add("minBetTime", start.toString())
+                .add("maxBetTime", end.toString())
+                .add("page", 0.toString())
+                .build()
+        val request = Request.Builder().addHeader("ContentType", "application/x-www-form-urlencoded")
+                .url("${settings.urlApi}/getsettledbets")
+                .post(body)
+                .build()
+        try {
+            val response = client.newCall(request).execute()
+            val k = response.body()!!.string()
+            response.close()
+            var map: OpenedBet = mapper.readValue(k)
+            if (map.actionStatus == 0) {
+                val betsList: ArrayList<BetInfo> = arrayListOf()
+                betsList.addAll(map.betInfos!!)
+                val maxPages = kotlin.math.floor(map.totalResults!! / 50.0).toInt()
+                if (maxPages > 0 ) {
+                    var i = 1
+                    while(i <= maxPages) {
+                        val zUn2 = UUID.randomUUID().toString()
+                        val body2 = FormBody.Builder()
+                                .add("username", "unity_group170")
+                                .add("accessToken", getAccessToken()!!)
+                                .add("reqId", zUn2)
+                                .add("minBetTime", start.toString())
+                                .add("maxBetTime", end.toString())
+                                .add("page", i.toString())
+                                .build()
+                        val request2 = Request.Builder().addHeader("ContentType", "application/x-www-form-urlencoded")
+                                .url("${settings.urlApi}/getsettledbets")
+                                .post(body2)
+                                .build()
+                        try {
+                            val response2 = client.newCall(request2).execute()
+                            val k2 = response2.body()!!.string()
+                            response.close()
+                            map = mapper.readValue(k2)
+                            if (map.actionStatus == 0) {
+                                betsList.addAll(map.betInfos!!)
+                                i++
+                            } else {
+                                val z = 1
+                            }
+                        } catch (e:Exception){
+                            pageInterractor.sendMessageConsole("Ошибка при запросе истории ставок, страница $i:" + e.message, pageInterractor.ERROR)
+                        }
+                    }
+                }
+                return betsList
+            }
+        } catch (e:Exception) {
+            pageInterractor.sendMessageConsole("Ошибка при парсинге истории ставок:" + e.message, pageInterractor.ERROR)
+        }
+        return null
     }
 }

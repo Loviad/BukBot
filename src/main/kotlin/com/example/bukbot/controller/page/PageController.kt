@@ -143,7 +143,14 @@ class PageController : CoroutineScope,
     }
     @GetMapping("/analitics")
     fun analiticsPage(model: Model, authentication: Authentication): String {
+        val state = pageInterractor.getSystemState()
         model.addAttribute("id", authentication.name)
+        model.addAttribute("stateParse", state.first)
+        model.addAttribute("stateBetting", state.second)
+        model.addAttribute("balance", currentState.state.balance)
+        model.addAttribute("credit", currentState.state.credit)
+        model.addAttribute("pl", currentState.state.pl)
+        model.addAttribute("memory", currentState.state.memory)
         return "analitics"
     }
 
@@ -213,10 +220,9 @@ class PageController : CoroutineScope,
     @PostMapping(path = ["/initstatistic"])
     @ResponseStatus(HttpStatus.OK)
     fun initStatistic(@RequestBody note: String,
-                     @RequestParam(required = false) startDate: String,
-                     @RequestParam(required = false) endDate: String
+                     @RequestParam(required = false) range: String
     ) {
-        currentState.getStatistic(startDate, endDate)
+        currentState.getStatistic(range)
     }
 
     private fun getToken() {
@@ -516,6 +522,24 @@ class PageController : CoroutineScope,
                             .name("consoleMessage")
                             .reconnectTime(20_000L)
                             .data(message, MediaType.APPLICATION_JSON)
+
+                    emitter.value.send(k)
+
+                } catch (ioe: Exception) {
+                    emittersData.remove(emitter.key)
+                }
+            }
+        }
+    }
+
+    fun sendAnalizeResult(analizeSSEModel: AnalizeSSEModel) {
+        emittersData.forEach { emitter ->
+            nonBlockingService.execute {
+                try {
+                    val k = SseEmitter.event()
+                            .name("analizeResult")
+                            .reconnectTime(20_000L)
+                            .data(analizeSSEModel, MediaType.APPLICATION_JSON)
 
                     emitter.value.send(k)
 
