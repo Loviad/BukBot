@@ -223,7 +223,7 @@ class ApiClient : CoroutineScope {
                 if (map.actionStatus == 0 &&
                         map.minStake!!.toDouble() <= settings.getGold() &&
                         map.currentOdd!!.toDouble() >= settings.minKef &&
-                        map.currentOdd!!.toDouble() <= 1.3) {
+                        map.currentOdd!!.toDouble() <= 1.0) {
                     map.sportBook = sportbook
                     listMap.add(map)
                 }
@@ -324,6 +324,7 @@ class ApiClient : CoroutineScope {
     }
 
     fun getSetledBets(start: Long, end: Long): ArrayList<BetInfo>? {
+        pageInterractor.sendProgressText("Запрос ставок от водсов")
         val zUn = UUID.randomUUID().toString()
         val body = FormBody.Builder()
                 .add("username", "unity_group170")

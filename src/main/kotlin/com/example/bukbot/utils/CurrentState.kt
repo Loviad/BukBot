@@ -61,8 +61,7 @@ class CurrentState : CoroutineScope {
                 state.balance
             } else {
                 0.0
-            } +
-                    if (settings.creditBetting) {
+            } + if (settings.creditBetting) {
                         state.credit
                     } else {
                         0.0
@@ -152,9 +151,15 @@ class CurrentState : CoroutineScope {
     }
 
     fun getStatistic(range: String) = launch(orderedContext) {
+        pageInterractor.sendProgressText("Парсим дату")
         val startAndEnd = range.split(" - ")
         val start = startAndEnd[0].split(".")  // mm.dd.yyyy
         val end = startAndEnd[1].split(".")  // mm.dd.yyyy
+        if (start.count() != 3 || end.count() != 3) {
+            pageInterractor.sendMessageConsole("Ошибка при парсинге даты", pageInterractor.ERROR)
+            pageInterractor.sendProgressText("Ошибка при парсинге даты")
+            return@launch
+        }
         val startDate = DateTime(
                 start[2].toInt(),
                 start[0].toInt(),
@@ -206,7 +211,7 @@ class CurrentState : CoroutineScope {
         val arraySportBook: ArrayList<String> = arrayListOf()
         var col = settings.sportbookList.count()
         pageInterractor.sendProgressMax(col)
-        for (i in settings.sportbookList){
+        for (i in settings.sportbookList) {
             arraySportBook.add(i)
             sportBookListWLD.add(
                     WLDmodel(
@@ -237,7 +242,7 @@ class CurrentState : CoroutineScope {
         col = ((max - min) / 0.1).toInt()
         val temp = col
         pageInterractor.sendProgressMax(col)
-        while (stepOdd <= max){
+        while (stepOdd <= max) {
             arrayOddsList.add(stepOdd.round(1).toString())
             arrayOddsWLD.add(
                     WLDmodel(

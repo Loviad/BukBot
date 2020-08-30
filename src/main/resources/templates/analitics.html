@@ -319,7 +319,6 @@
                 startAnalis() {
                     this.analisInProgress = true;
                     this.progresValuenow = 0;
-                    this.analizeText = 'Запрос ставок от Водсов';
                     axios.post('/initstatistic', 'range='+$('#reservation').val()+'&_csrf='+base.hash, axiosConfig);
                 }
             },
