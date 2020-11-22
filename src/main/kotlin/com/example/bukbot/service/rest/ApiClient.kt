@@ -374,6 +374,8 @@ class ApiClient : CoroutineScope {
                                 betsList.addAll(map.betInfos!!)
                                 i++
                                 pageInterractor.sendProgressValue(i)
+                            } else {
+                                pageInterractor.sendProgressText("Неверный ответ на странице $i \n $k2")
                             }
                         } catch (e:Exception){
                             pageInterractor.sendMessageConsole("Ошибка при запросе истории ставок, страница $i:" + e.message, pageInterractor.ERROR)

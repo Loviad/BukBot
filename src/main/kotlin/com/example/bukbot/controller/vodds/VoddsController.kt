@@ -15,6 +15,7 @@ import jayeson.lib.feed.soccer.SoccerMatch
 import jayeson.lib.feed.soccer.SoccerRecord
 import jayeson.lib.sports.client.SportsFeedFactory
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.launch
 import org.joda.time.DateTime
@@ -90,7 +91,7 @@ class VoddsController : CoroutineScope, IGettingSnapshotListener {
     }
 
 
-    fun updateOdd(stream: Stream<SoccerRecord>?) = launch(updateDispatcher) {
+    fun updateOdd(stream: Stream<SoccerRecord>?) = launch(Dispatchers.IO) {
         if (stream != null && currentState.canBetting && settings.getBetPlacing()) {
             var changeRate: Boolean
             val o = Random.nextInt(0, 100)
