@@ -87,9 +87,9 @@ class CurrentState : CoroutineScope {
         while (true) {
             try {
                 state.OB = openedBets.get()?.totalResults ?: 0
-                hal?.let {
-                    state.memory = (((it.memory.available / 1024.0) / 1024.0) / 1024.0).round(2)
-                }
+//                hal?.let {  // Бот для никсов, поэтому чек памяти работает только на никсах
+//                    state.memory = (((it.memory.available / 1024.0) / 1024.0) / 1024.0).round(2)
+//                }
                 sendEvents<CurStateEvent> {
                     it.updateState(state)
                 }
