@@ -27,7 +27,6 @@ import javax.annotation.PostConstruct
 import kotlin.random.Random
 import kotlin.streams.toList
 
-
 @Component
 class VoddsController : CoroutineScope, IGettingSnapshotListener {
 
@@ -55,8 +54,6 @@ class VoddsController : CoroutineScope, IGettingSnapshotListener {
 
     private val updateDispatcher = backgroundUpdateTaskDispatcher
 
-
-
     @PostConstruct
     fun init() {
         settings.addSettingsEventListener(this)
@@ -67,7 +64,6 @@ class VoddsController : CoroutineScope, IGettingSnapshotListener {
         if (newValue)
             start()
     }
-
 
     fun start() = launch {
         val factory = SportsFeedFactory()
@@ -89,7 +85,6 @@ class VoddsController : CoroutineScope, IGettingSnapshotListener {
         if (stream == null) return@launch
         sendingMessageToConsole("Delete Matches")
     }
-
 
     fun updateOdd(stream: Stream<SoccerRecord>?) = launch(Dispatchers.IO) {
         if (stream != null && currentState.canBetting && settings.getBetPlacing()) {
@@ -138,7 +133,6 @@ class VoddsController : CoroutineScope, IGettingSnapshotListener {
         }
     }
 
-
     fun deleteOdd(stream: Stream<SoccerRecord>?) = launch(updateDispatcher) {
         if (stream == null) return@launch
         stream.forEach { record ->
@@ -151,7 +145,6 @@ class VoddsController : CoroutineScope, IGettingSnapshotListener {
     private fun sendingMessageToConsole(message: String)  {
         pageInterractor.sendMessageConsole(message)
     }
-
 
     private fun stringHash(item: SoccerRecord): Int {
         var result = item.matchId().hashCode()

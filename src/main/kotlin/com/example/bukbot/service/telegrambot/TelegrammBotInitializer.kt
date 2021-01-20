@@ -12,8 +12,6 @@ import org.telegram.telegrambots.ApiContextInitializer
 import org.telegram.telegrambots.bots.DefaultBotOptions
 import org.telegram.telegrambots.meta.ApiContext
 
-
-
 @Component
 class TelegrammBotInitializer{
 
@@ -32,7 +30,6 @@ class TelegrammBotInitializer{
         val botsApi = TelegramBotsApi()
 
         val botOptions = ApiContext.getInstance(DefaultBotOptions::class.java)
-
 
 //        botOptions.proxyHost = "127.0.0.1"
 //        botOptions.proxyPort = 9050

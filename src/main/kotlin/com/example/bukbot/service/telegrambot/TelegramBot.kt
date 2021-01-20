@@ -15,21 +15,6 @@ import org.telegram.telegrambots.meta.api.objects.Message
 import java.lang.Exception
 import kotlin.collections.HashMap
 
-
-//val sendMessage = SendMessage()
-//sendMessage.enableMarkdown(true)
-//sendMessage.chatId = message.chatId.toString()
-//sendMessage.text = if(user.chatId == message.chatId.toString() &&
-//user.firstName == message.chat.firstName &&
-//user.lastName == message.chat.lastName) {
-//    "Привет"
-//} else {"Я тебя не знаю"}
-//try {
-//    execute(sendMessage)
-//} catch (e: Exception) {
-//
-//}
-
 class TelegramBot(
         val authInterractor: AuthInterractor,
         val telegramInterractor: TelegramInterractor,
@@ -198,5 +183,4 @@ class TelegramBot(
             }
         }
     }
-
 }

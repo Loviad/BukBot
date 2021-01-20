@@ -17,31 +17,7 @@ repositories {
 }
 
 dependencies {
-
-//    listOf(
-////            "org.jetbrains.kotlin:kotlin-reflect",
-//            "org.springframework.boot:spring-boot-starter-web",
-//            "org.springframework.boot:spring-boot-starter-thymeleaf",
-////            "org.jetbrains.kotlin:kotlin-stdlib-jdk8",
-//            "org.telegram:telegrambots-spring-boot-starter:4.1.2",
-//            "org.springframework.boot:spring-boot-devtools:2.1.8.RELEASE",
-////            "org.mongodb:mongodb-driver-async:3.10.1",
-////            "ch.rasc:sse-eventbus:1.1.7",
-////            "joda-time:joda-time:2.10.1",
-////            "com.google.guava:guava:25.+",
-////            "org.springframework.boot:spring-boot-starter-security",
-////            "com.fasterxml.jackson.module:jackson-module-kotlin:2.9.9",
-////            "com.squareup.okhttp3:okhttp:3.14.2",
-////            "org.jetbrains.kotlinx:kotlinx-coroutines-reactor",
-//            "org.springframework.boot:spring-boot-starter-data-mongodb"
-//    ).forEach { dep ->
-//        implementation(dep) {
-////            exclude( module = "spring-boot-starter-logging")
-////            exclude(group = "ch.qos.logback", module = "logback-classic")
-//        }
-//    }
     implementation("org.springframework.boot:spring-boot-starter-data-mongodb")
-//    //implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
     implementation("org.jetbrains.kotlin:kotlin-reflect")
     implementation("org.springframework.boot:spring-boot-starter-thymeleaf")
     implementation("org.springframework.boot:spring-boot-starter-web")
@@ -53,7 +29,6 @@ dependencies {
     implementation("joda-time:joda-time:2.10.1")
     implementation("com.google.guava:guava:25.+")
     implementation("org.springframework.boot:spring-boot-starter-security")
-//    //implementation("org.seleniumhq.selenium:selenium-chrome-driver:3.141.59")
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.9.9")
     implementation("com.squareup.okhttp3:okhttp:3.14.2")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-reactor")
@@ -69,10 +44,6 @@ application {
     @Suppress("UnstableApiUsage") mainClassName = "com.example.bukbot.BukBotApplication"
     applicationName = "BukBot"
 }
-//
-//springBoot {
-//    mainClassName = "com.example.bukbot.BukBotApplication"
-//}
 
 tasks.withType<KotlinCompile> {
     kotlinOptions {
@@ -80,36 +51,3 @@ tasks.withType<KotlinCompile> {
         jvmTarget = "1.8"
     }
 }
-//tasks.getByName<BootJar>("bootJar") {
-//    mainClassName = "com.example.bukbot.BukBotApplication"
-//    classifier = "boot"
-//    manifest {
-//        attributes("Main-Class" to "org.springframework.boot.loader.PropertiesLauncher")
-//        attributes("Start-Class" to "com.example.bukbot.BukBotApplication")
-//    }
-//    launchScript{
-//        properties(mapOf("logFilename" to "BukBot-app.log"))
-//    }
-//}
-
-
-
-//val fatJar = task("fatJar", type = Jar::class) {
-//    baseName = "${project.name}-fat"
-//    // manifest Main-Class attribute is optional.
-//    // (Used only to provide default main class for executable jar)
-//    manifest {
-//        attributes["Main-Class"] = "com.example.bukbot.BukBotApplication" // fully qualified class name of default main class
-//    }
-//    from(configurations.runtimeClasspath.get().map {
-//        if (it.isDirectory) it
-//        else zipTree(it)
-//    })
-//    with(tasks.jar.get() as CopySpec)
-//}
-//
-//tasks {
-//    "build" {
-//        dependsOn(fatJar)
-//    }
-//}

@@ -28,7 +28,6 @@ import oshi.hardware.HardwareAbstractionLayer
 import javax.annotation.PostConstruct
 import kotlin.math.floor
 
-
 @Component
 class CurrentState : CoroutineScope {
     @Autowired
